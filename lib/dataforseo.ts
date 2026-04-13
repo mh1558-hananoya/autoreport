@@ -82,12 +82,13 @@ export async function fetchCompetitorAnalysis(
   knownCompetitors: string[]
 ): Promise<SEOCompetitorData[]> {
   const normalizedKnown = knownCompetitors.map(normalizeDomain);
+  const normalizedTarget = normalizeDomain(domain);
 
   const data = await dataforseoFetch('/v3/dataforseo_labs/google/competitors_domain/live', [
     {
-      target: domain,
-      language_code: 'ja',
-      location_code: 1009564,
+      target: normalizedTarget,
+      language_name: 'Japanese',
+      location_name: 'Japan',
       limit: 10,
     },
   ]);
@@ -100,6 +101,8 @@ export async function fetchCompetitorAnalysis(
     for (const item of items) {
       const competitorDomain = item.domain;
       const normalizedCompetitor = normalizeDomain(competitorDomain);
+      // 自ドメインは除外
+      if (normalizedCompetitor === normalizedTarget) continue;
       // 登録済みの競合ドメインか、上位の競合のみ含める
       if (
         normalizedKnown.includes(normalizedCompetitor) ||
