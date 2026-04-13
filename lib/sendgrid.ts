@@ -1,5 +1,5 @@
 import sgMail from '@sendgrid/mail';
-import { ClaudeReportResponse } from './types';
+import { ClaudeReportResponse, GA4Data, GSCKeywordData } from './types';
 
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'm.hanaoka@hanano-ya.jp';
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || '花岡正和（株式会社花のや）';
@@ -27,12 +27,18 @@ export function buildEmailBody(
   contactName: string,
   month: string,
   report: ClaudeReportResponse,
-  ga4Summary: { sessions: number; sessionsDiff: number; pageViews: number; pageViewsDiff: number; bounceRate: number }
+  ga4: GA4Data,
+  gscKeywords?: GSCKeywordData[]
 ): { html: string; text: string } {
-  const m = parseInt(month.split('-')[1], 10);
+  const [yearStr, monthStr] = month.split('-');
+  const m = parseInt(monthStr, 10);
+  const year = parseInt(yearStr, 10);
 
-  const sessionSign = ga4Summary.sessionsDiff >= 0 ? '+' : '';
-  const pvSign = ga4Summary.pageViewsDiff >= 0 ? '+' : '';
+  const s = ga4.sessions;
+  const pv = ga4.page_views;
+  const sessionSign = s.diff_pct >= 0 ? '+' : '';
+  const pvSign = pv.diff_pct >= 0 ? '+' : '';
+  const nuSign = ga4.new_users.diff_pct >= 0 ? '+' : '';
 
   let proposalSection = '';
   if (report.alert_level === 3 && report.alert_message) {
@@ -43,23 +49,42 @@ export function buildEmailBody(
       .join('\n\n');
   }
 
+  // 詳細データセクション（テキスト版）
+  const detailText = `━━━━━━━━━━━━━━━━
+【${year}年${m}月 アクセス解析】
+━━━━━━━━━━━━━━━━
+
+訪問者数: ${s.current.toLocaleString()} (前月比 ${sessionSign}${s.diff_pct}%)
+ページ閲覧数: ${pv.current.toLocaleString()} (前月比 ${pvSign}${pv.diff_pct}%)
+アクティブユーザー: ${ga4.active_users.current.toLocaleString()}
+新規ユーザー: ${ga4.new_users.current.toLocaleString()} (前月比 ${nuSign}${ga4.new_users.diff_pct}%)
+直帰率: ${Math.round(ga4.bounce_rate.current * 100)}%
+平均滞在時間: ${ga4.avg_session_duration.current}秒
+前年同月訪問者数: ${ga4.same_period_last_year.sessions.toLocaleString()}${gscKeywords && gscKeywords.length > 0 ? `
+
+━━━━━━━━━━━━━━━━
+【検索されているキーワード】
+━━━━━━━━━━━━━━━━
+
+${gscKeywords.slice(0, 10).map((kw) => `${kw.keyword}　${kw.position}位 / ${kw.clicks}クリック`).join('\n')}` : ''}`;
+
   const text = `${contactName}様
 
 お世話になっております。花のやの花岡です。
 ${m}月度のサイトレポートをお届けします。
 
 ━━━━━━━━━━━━━━━━
-今月のサマリー
+📊 今月のサマリー
 ━━━━━━━━━━━━━━━━
 
-訪問者数：${ga4Summary.sessions.toLocaleString()}人（先月比 ${sessionSign}${ga4Summary.sessionsDiff}%）
-ページ閲覧数：${ga4Summary.pageViews.toLocaleString()}回（先月比 ${pvSign}${ga4Summary.pageViewsDiff}%）
-直帰率：${Math.round(ga4Summary.bounceRate * 100)}%
+訪問者数：${s.current.toLocaleString()}人（先月比 ${sessionSign}${s.diff_pct}%）
+ページ閲覧数：${pv.current.toLocaleString()}回（先月比 ${pvSign}${pv.diff_pct}%）
+直帰率：${Math.round(ga4.bounce_rate.current * 100)}%
 
 ${report.summary}
 
 ━━━━━━━━━━━━━━━━
-今月の動き
+📈 今月の動き
 ━━━━━━━━━━━━━━━━
 
 【良かった点】
@@ -69,21 +94,50 @@ ${report.good_points.map((p) => `・${p}`).join('\n')}
 ${report.concern_points.map((p) => `・${p}`).join('\n')}
 
 ━━━━━━━━━━━━━━━━
-ご提案
+💡 ご提案
 ━━━━━━━━━━━━━━━━
 
 ${proposalSection}
 
 ━━━━━━━━━━━━━━━━
 
-▶ ご興味のある項目があればこのメールに返信してください。
+ご関心をお持ちいただいた項目がございましたら、ぜひこのメールにご返信ください。
+詳しいご説明やお見積りのご用意も、いつでも対応可能です。
 
-ご不明点があればいつでもご連絡ください。
-引き続きよろしくお願いいたします。
+${detailText}
 
-株式会社花のや｜花岡正和
+━━━━━━━━━━━━━━━━
+
+まずはお気軽にご相談ください。
+一緒に貴社の成果につながる一手を考えてまいります。
+引き続きどうぞよろしくお願い申し上げます。
+
+株式会社花のや
+〒460-0008 名古屋市中区栄2-14-5 山本屋本店栄ビル7階
 TEL 052-211-9898
 https://www.hanano-ya.jp/`;
+
+  // 詳細データセクション（HTML版）
+  const detailHtml = `
+<div style="background: #f5f5f5; padding: 16px; margin: 24px 0; border-radius: 4px; font-size: 13px;">
+<h3 style="margin: 0 0 12px; color: #555; font-size: 14px;">📋 ${year}年${m}月 アクセス解析</h3>
+<table style="width: 100%; border-collapse: collapse;">
+<tr><td style="padding: 3px 0; color: #666;">訪問者数</td><td style="text-align: right;">${s.current.toLocaleString()} (${sessionSign}${s.diff_pct}%)</td></tr>
+<tr><td style="padding: 3px 0; color: #666;">ページ閲覧数</td><td style="text-align: right;">${pv.current.toLocaleString()} (${pvSign}${pv.diff_pct}%)</td></tr>
+<tr><td style="padding: 3px 0; color: #666;">アクティブユーザー</td><td style="text-align: right;">${ga4.active_users.current.toLocaleString()}</td></tr>
+<tr><td style="padding: 3px 0; color: #666;">新規ユーザー</td><td style="text-align: right;">${ga4.new_users.current.toLocaleString()} (${nuSign}${ga4.new_users.diff_pct}%)</td></tr>
+<tr><td style="padding: 3px 0; color: #666;">直帰率</td><td style="text-align: right;">${Math.round(ga4.bounce_rate.current * 100)}%</td></tr>
+<tr><td style="padding: 3px 0; color: #666;">平均滞在時間</td><td style="text-align: right;">${ga4.avg_session_duration.current}秒</td></tr>
+<tr><td style="padding: 3px 0; color: #666;">前年同月訪問者数</td><td style="text-align: right;">${ga4.same_period_last_year.sessions.toLocaleString()}</td></tr>
+</table>
+</div>${gscKeywords && gscKeywords.length > 0 ? `
+<div style="background: #f5f5f5; padding: 16px; margin: 24px 0; border-radius: 4px; font-size: 13px;">
+<h3 style="margin: 0 0 12px; color: #555; font-size: 14px;">🔍 検索されているキーワード</h3>
+<table style="width: 100%; border-collapse: collapse;">
+<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 4px 0; color: #999; font-size: 11px;">キーワード</td><td style="text-align: right; color: #999; font-size: 11px;">順位</td><td style="text-align: right; color: #999; font-size: 11px;">クリック</td></tr>
+${gscKeywords.slice(0, 10).map((kw) => `<tr><td style="padding: 3px 0;">${kw.keyword}</td><td style="text-align: right;">${kw.position}位</td><td style="text-align: right;">${kw.clicks}</td></tr>`).join('')}
+</table>
+</div>` : ''}`;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -95,9 +149,9 @@ https://www.hanano-ya.jp/`;
 <div style="background: #f8f8f8; border-left: 4px solid #d2151a; padding: 16px; margin: 24px 0;">
 <h3 style="margin: 0 0 12px; color: #d2151a;">📊 今月のサマリー</h3>
 <table style="width: 100%; border-collapse: collapse;">
-<tr><td style="padding: 4px 0;">訪問者数</td><td style="text-align: right; font-weight: bold;">${ga4Summary.sessions.toLocaleString()}人（${sessionSign}${ga4Summary.sessionsDiff}%）</td></tr>
-<tr><td style="padding: 4px 0;">ページ閲覧数</td><td style="text-align: right; font-weight: bold;">${ga4Summary.pageViews.toLocaleString()}回（${pvSign}${ga4Summary.pageViewsDiff}%）</td></tr>
-<tr><td style="padding: 4px 0;">直帰率</td><td style="text-align: right; font-weight: bold;">${Math.round(ga4Summary.bounceRate * 100)}%</td></tr>
+<tr><td style="padding: 4px 0;">訪問者数</td><td style="text-align: right; font-weight: bold;">${s.current.toLocaleString()}人（${sessionSign}${s.diff_pct}%）</td></tr>
+<tr><td style="padding: 4px 0;">ページ閲覧数</td><td style="text-align: right; font-weight: bold;">${pv.current.toLocaleString()}回（${pvSign}${pv.diff_pct}%）</td></tr>
+<tr><td style="padding: 4px 0;">直帰率</td><td style="text-align: right; font-weight: bold;">${Math.round(ga4.bounce_rate.current * 100)}%</td></tr>
 </table>
 <p style="margin: 12px 0 0;">${report.summary}</p>
 </div>
@@ -127,6 +181,8 @@ ${
 <div style="background: #d2151a; color: white; padding: 12px 20px; border-radius: 4px; text-align: center; margin: 24px 0;">
 ▶ ご興味のある項目があればこのメールに返信してください。
 </div>
+
+${detailHtml}
 
 <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0;">
 <p style="font-size: 13px; color: #666;">

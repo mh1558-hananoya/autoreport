@@ -95,7 +95,40 @@ export interface GA4Data {
   same_period_last_year: { sessions: number };
 }
 
-// SEO data structures
+// Search Console data
+export interface GSCKeywordData {
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number; // 月間平均順位
+}
+
+export interface GSCPageData {
+  page: string;
+  clicks: number;
+  impressions: number;
+  position: number;
+}
+
+export interface GSCData {
+  keywords: GSCKeywordData[];
+  pages: GSCPageData[];
+  totals: {
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  };
+  previous_totals: {
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  };
+}
+
+// SEO data structures (DataForSEO - 競合分析用)
 export interface SEOKeywordData {
   keyword: string;
   current_rank: number | null;
@@ -114,6 +147,7 @@ export interface SEOCompetitorData {
 export interface SEOData {
   keywords: SEOKeywordData[];
   competitors: SEOCompetitorData[];
+  gsc?: GSCData;
 }
 
 // Claude API response

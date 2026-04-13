@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase';
 import { fetchGA4Data } from '@/lib/ga4';
 import { fetchSEOData } from '@/lib/dataforseo';
+import { fetchGSCData } from '@/lib/gsc';
 import { generateReport } from '@/lib/claude';
 import { buildEmailSubject, buildEmailBody, sendReminderEmail } from '@/lib/sendgrid';
 import { Customer, Service, CustomerKeyword, CustomerCompetitor, CustomerPage, MonthlyMemo, Report } from '@/lib/types';
@@ -74,21 +75,27 @@ export async function GET(request: NextRequest) {
 
       // SEOデータ取得（3回リトライ）
       let seoData;
-      for (let i = 0; i < 3; i++) {
-        try {
-          seoData = await fetchSEOData(
-            customer.domain,
-            keywords.map((k) => ({ keyword: k.keyword, target_url: k.target_url })),
-            competitors.map((c) => c.competitor_domain)
-          );
-          break;
-        } catch (e) {
-          if (i === 2) throw e;
-          await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
-        }
+      try {
+        seoData = await fetchSEOData(
+          customer.domain,
+          keywords.map((k) => ({ keyword: k.keyword, target_url: k.target_url })),
+          competitors.map((c) => c.competitor_domain)
+        );
+      } catch (e) {
+        console.error('DataForSEO failed:', e);
+        seoData = { keywords: [], competitors: [] };
       }
 
-      if (!ga4Data || !seoData) throw new Error('Data fetch failed');
+      // Search Consoleデータ取得
+      try {
+        const siteUrl = `https://${customer.domain}`;
+        const gscData = await fetchGSCData(siteUrl, targetYear, targetMonth);
+        seoData.gsc = gscData;
+      } catch (e) {
+        console.error('GSC fetch failed:', e);
+      }
+
+      if (!ga4Data) throw new Error('GA4 data fetch failed');
 
       // 保守期間計算
       let maintenanceMonths = 0;
@@ -136,13 +143,13 @@ export async function GET(request: NextRequest) {
 
       // メール生成
       const subject = buildEmailSubject(customer.company_name, yearMonth, claudeResponse.subject_suffix);
-      const { html, text } = buildEmailBody(customer.contact_name, yearMonth, claudeResponse, {
-        sessions: ga4Data.sessions.current,
-        sessionsDiff: ga4Data.sessions.diff_pct,
-        pageViews: ga4Data.page_views.current,
-        pageViewsDiff: ga4Data.page_views.diff_pct,
-        bounceRate: ga4Data.bounce_rate.current,
-      });
+      const { html, text } = buildEmailBody(
+        customer.contact_name,
+        yearMonth,
+        claudeResponse,
+        ga4Data,
+        seoData.gsc?.keywords
+      );
 
       // 保存
       await supabase.from('reports').upsert({

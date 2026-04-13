@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase';
 import { fetchGA4Data } from '@/lib/ga4';
 import { fetchSEOData } from '@/lib/dataforseo';
+import { fetchGSCData } from '@/lib/gsc';
 import { generateReport } from '@/lib/claude';
 import { buildEmailSubject, buildEmailBody } from '@/lib/sendgrid';
 import { Customer, Service, CustomerKeyword, CustomerCompetitor, CustomerPage, MonthlyMemo, Report } from '@/lib/types';
@@ -88,13 +89,18 @@ export async function POST(request: NextRequest) {
       );
     } catch (error) {
       console.error('SEO fetch failed:', error);
-      await supabase.from('reports').upsert({
-        customer_id: customerId,
-        year_month: yearMonth,
-        status: 'error',
-        ga4_data: ga4Data,
-      }, { onConflict: 'customer_id,year_month' });
-      return NextResponse.json({ error: 'SEO data fetch failed' }, { status: 500 });
+      // DataForSEO失敗は致命的ではない、空データで続行
+      seoData = { keywords: [], competitors: [] };
+    }
+
+    // Search Console データ取得
+    try {
+      const siteUrl = `https://${cust.domain}`;
+      const gscData = await fetchGSCData(siteUrl, year, month);
+      seoData.gsc = gscData;
+    } catch (error) {
+      console.error('GSC fetch failed:', error);
+      // GSC失敗も致命的ではない
     }
 
     // 保守期間（月数）を計算
@@ -162,13 +168,13 @@ export async function POST(request: NextRequest) {
 
     // メール件名・本文生成
     const subject = buildEmailSubject(cust.company_name, yearMonth, claudeResponse.subject_suffix);
-    const { html, text } = buildEmailBody(cust.contact_name, yearMonth, claudeResponse, {
-      sessions: ga4Data.sessions.current,
-      sessionsDiff: ga4Data.sessions.diff_pct,
-      pageViews: ga4Data.page_views.current,
-      pageViewsDiff: ga4Data.page_views.diff_pct,
-      bounceRate: ga4Data.bounce_rate.current,
-    });
+    const { html, text } = buildEmailBody(
+      cust.contact_name,
+      yearMonth,
+      claudeResponse,
+      ga4Data,
+      seoData.gsc?.keywords
+    );
 
     // レポート保存
     const { data: report, error: saveErr } = await supabase

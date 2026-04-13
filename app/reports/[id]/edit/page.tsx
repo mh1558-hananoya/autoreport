@@ -172,20 +172,20 @@ export default function ReportEditPage() {
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">順位変動リスト</h3>
-              {seo?.keywords && seo.keywords.length > 0 ? (
-                <div className="space-y-1">
-                  {seo.keywords.map((kw, i) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span>{kw.keyword}</span>
-                      <span className={
-                        kw.current_rank && kw.previous_rank
-                          ? kw.current_rank < kw.previous_rank ? 'text-green-600' : kw.current_rank > kw.previous_rank ? 'text-red-600' : 'text-gray-500'
-                          : 'text-gray-500'
-                      }>
-                        {kw.current_rank ?? '-'}位
-                        {kw.previous_rank ? ` (前月${kw.previous_rank}位)` : ''}
-                      </span>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">検索パフォーマンス（Search Console）</h3>
+              {seo?.gsc ? (
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50 rounded p-2">
+                    <p>クリック数: {seo.gsc.totals.clicks.toLocaleString()}</p>
+                    <p>表示回数: {seo.gsc.totals.impressions.toLocaleString()}</p>
+                    <p>CTR: {seo.gsc.totals.ctr}%</p>
+                    <p>平均順位: {seo.gsc.totals.position}位</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">主要キーワード（上位20）:</p>
+                  {seo.gsc.keywords.slice(0, 20).map((kw, i) => (
+                    <div key={i} className="flex justify-between text-xs">
+                      <span className="truncate flex-1 mr-2">{kw.keyword}</span>
+                      <span className="text-gray-500 whitespace-nowrap">{kw.position}位 / {kw.clicks}クリック</span>
                     </div>
                   ))}
                 </div>

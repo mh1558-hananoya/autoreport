@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase';
 import { buildEmailBody } from '@/lib/sendgrid';
-import { ClaudeReportResponse, GA4Data } from '@/lib/types';
+import { ClaudeReportResponse, GA4Data, GSCKeywordData } from '@/lib/types';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -32,7 +32,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   if (body.claude_raw && body.subject) {
     const { data: report } = await supabase
       .from('reports')
-      .select('customer_id, ga4_data, year_month')
+      .select('customer_id, ga4_data, seo_data, year_month')
       .eq('id', id)
       .single();
 
@@ -46,18 +46,14 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       if (customer) {
         const claudeData: ClaudeReportResponse = JSON.parse(body.claude_raw);
         const ga4 = report.ga4_data as GA4Data;
+        const seoData = report.seo_data as { gsc?: { keywords?: GSCKeywordData[] } } | null;
 
         const { html, text } = buildEmailBody(
           customer.contact_name,
           report.year_month,
           claudeData,
-          {
-            sessions: ga4?.sessions?.current || 0,
-            sessionsDiff: ga4?.sessions?.diff_pct || 0,
-            pageViews: ga4?.page_views?.current || 0,
-            pageViewsDiff: ga4?.page_views?.diff_pct || 0,
-            bounceRate: ga4?.bounce_rate?.current || 0,
-          }
+          ga4,
+          seoData?.gsc?.keywords
         );
 
         body.body_html = html;
