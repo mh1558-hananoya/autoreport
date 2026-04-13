@@ -20,6 +20,7 @@ export default function CustomerDetailPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [memo, setMemo] = useState<{ memo: string; exclude_services: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -136,12 +137,15 @@ export default function CustomerDetailPage() {
             <button
               onClick={async () => {
                 if (!confirm(`${customer.company_name} を削除しますか？\n（レポート履歴は保持されます）`)) return;
+                setDeleting(true);
                 const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
                 if (res.ok) router.push('/dashboard');
+                else setDeleting(false);
               }}
-              className="text-sm text-gray-400 hover:text-red-600"
+              disabled={deleting}
+              className="text-sm text-gray-400 hover:text-red-600 disabled:opacity-50"
             >
-              削除
+              {deleting ? '削除中...' : '削除'}
             </button>
             <a
               href={`/customers/${id}/history`}
@@ -176,7 +180,7 @@ export default function CustomerDetailPage() {
               <input
                 id="new-competitor"
                 className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
-                placeholder="competitor.co.jp"
+                placeholder="例：competitor.co.jp（httpなし・ドメインのみ）"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -211,7 +215,7 @@ export default function CustomerDetailPage() {
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
                 <input
                   className="col-span-4 border border-gray-300 rounded px-2 py-1.5 text-sm"
-                  placeholder="URL（例：/price/）"
+                  placeholder="例：/price/（パスのみ）"
                   value={p.url}
                   onChange={(e) => updatePage(i, 'url', e.target.value)}
                 />
@@ -227,7 +231,7 @@ export default function CustomerDetailPage() {
                 </select>
                 <input
                   className="col-span-3 border border-gray-300 rounded px-2 py-1.5 text-sm"
-                  placeholder="説明"
+                  placeholder="例：料金ページ"
                   value={p.description}
                   onChange={(e) => updatePage(i, 'description', e.target.value)}
                 />

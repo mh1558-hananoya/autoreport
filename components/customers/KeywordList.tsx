@@ -49,14 +49,14 @@ export default function KeywordList({ keywords, onChange }: KeywordListProps) {
       <div className="flex gap-2">
         <input
           className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
-          placeholder="キーワード"
+          placeholder="例：外壁塗装 名古屋"
           value={newKeyword}
           onChange={(e) => setNewKeyword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
         />
         <input
           className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
-          placeholder="対応ページURL（任意）"
+          placeholder="例：https://example.co.jp/price/（任意）"
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}

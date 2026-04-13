@@ -56,6 +56,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             <input
               required
               className={inputClass}
+              placeholder="例：株式会社サンプル"
               value={form.company_name}
               onChange={(e) => setForm({ ...form, company_name: e.target.value })}
             />
@@ -65,6 +66,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             <input
               required
               className={inputClass}
+              placeholder="例：山田太郎"
               value={form.contact_name}
               onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
             />
@@ -75,6 +77,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
               required
               type="email"
               className={inputClass}
+              placeholder="例：yamada@example.co.jp"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
@@ -84,7 +87,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             <input
               required
               className={inputClass}
-              placeholder="example.co.jp"
+              placeholder="例：example.co.jp（httpなし・ドメインのみ）"
               value={form.domain}
               onChange={(e) => setForm({ ...form, domain: e.target.value })}
             />
@@ -94,7 +97,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             <input
               required
               className={inputClass}
-              placeholder="123456789"
+              placeholder="例：123456789（数字のみ）"
               value={form.ga4_property_id}
               onChange={(e) => setForm({ ...form, ga4_property_id: e.target.value })}
             />
@@ -103,7 +106,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             <label className="block text-xs text-gray-500 mb-1">GA4 コンバージョンイベント名</label>
             <input
               className={inputClass}
-              placeholder="contact"
+              placeholder="例：contact（未入力ならcontact）"
               value={form.ga4_conversion_event}
               onChange={(e) => setForm({ ...form, ga4_conversion_event: e.target.value })}
             />
@@ -150,6 +153,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             <input
               type="number"
               className={inputClass}
+              placeholder="例：10"
               value={form.cv_goal_monthly}
               onChange={(e) => setForm({ ...form, cv_goal_monthly: e.target.value })}
             />

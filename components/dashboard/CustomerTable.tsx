@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import StatusBadge from './StatusBadge';
 import { getReportTargetMonth } from '@/lib/utils';
@@ -37,6 +38,29 @@ function ReactionBadge({ replied, converted }: { replied: boolean; converted: bo
 }
 
 export default function CustomerTable({ customers }: CustomerTableProps) {
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+
+  const handleGenerate = async (customerId: string) => {
+    setGeneratingIds((prev) => new Set(prev).add(customerId));
+    try {
+      await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId,
+          yearMonth: getReportTargetMonth(),
+        }),
+      });
+      window.location.reload();
+    } catch {
+      setGeneratingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(customerId);
+        return next;
+      });
+    }
+  };
+
   // L3を上部に浮上
   const sorted = [...customers].sort((a, b) => {
     if (a.alert_level === 3 && b.alert_level !== 3) return -1;
@@ -90,35 +114,19 @@ export default function CustomerTable({ customers }: CustomerTableProps) {
                   </Link>
                 ) : c.status === 'error' ? (
                   <button
-                    onClick={() => {
-                      fetch('/api/reports/generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          customerId: c.id,
-                          yearMonth: getReportTargetMonth(),
-                        }),
-                      }).then(() => window.location.reload());
-                    }}
-                    className="text-accent hover:underline"
+                    onClick={() => handleGenerate(c.id)}
+                    disabled={generatingIds.has(c.id)}
+                    className="text-accent hover:underline disabled:opacity-50 disabled:cursor-wait"
                   >
-                    再実行
+                    {generatingIds.has(c.id) ? '生成中...' : '再実行'}
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      fetch('/api/reports/generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          customerId: c.id,
-                          yearMonth: getReportTargetMonth(),
-                        }),
-                      }).then(() => window.location.reload());
-                    }}
-                    className="text-accent hover:underline"
+                    onClick={() => handleGenerate(c.id)}
+                    disabled={generatingIds.has(c.id)}
+                    className="text-accent hover:underline disabled:opacity-50 disabled:cursor-wait"
                   >
-                    生成開始
+                    {generatingIds.has(c.id) ? '生成中...' : '生成開始'}
                   </button>
                 )}
               </td>
