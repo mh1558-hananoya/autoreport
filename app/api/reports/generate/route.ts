@@ -95,7 +95,9 @@ export async function POST(request: NextRequest) {
 
     // Search Console データ取得
     try {
-      const siteUrl = `https://${cust.domain}`;
+      // domainが既にURLの場合はそのまま使い、ドメインのみの場合はhttps://を付与
+      const rawDomain = cust.domain.replace(/\/+$/, '');
+      const siteUrl = rawDomain.startsWith('http') ? rawDomain : `https://${rawDomain}`;
       const gscData = await fetchGSCData(siteUrl, year, month);
       seoData.gsc = gscData;
     } catch (error) {

@@ -66,11 +66,11 @@ export function buildEmailBody(
 【検索されているキーワード】
 ━━━━━━━━━━━━━━━━
 
-${gscKeywords.slice(0, 10).map((kw) => `${kw.keyword}　${kw.position}位 / ${kw.clicks}クリック`).join('\n')}` : ''}`;
+${gscKeywords.slice(0, 10).map((kw) => `${kw.keyword}　平均${Number(kw.position).toFixed(1)}位 / ${kw.clicks}クリック`).join('\n')}` : ''}`;
 
   const text = `${contactName}様
 
-お世話になっております。花のやの花岡です。
+お世話になっております。株式会社花のやです。
 ${m}月度のサイトレポートをお届けします。
 
 ━━━━━━━━━━━━━━━━
@@ -101,8 +101,7 @@ ${proposalSection}
 
 ━━━━━━━━━━━━━━━━
 
-ご関心をお持ちいただいた項目がございましたら、ぜひこのメールにご返信ください。
-詳しいご説明やお見積りのご用意も、いつでも対応可能です。
+ご関心をお持ちいただいた項目がございましたら、本メールへのご返信にてお知らせください。
 
 ${detailText}
 
@@ -134,8 +133,8 @@ https://www.hanano-ya.jp/`;
 <div style="background: #f5f5f5; padding: 16px; margin: 24px 0; border-radius: 4px; font-size: 13px;">
 <h3 style="margin: 0 0 12px; color: #555; font-size: 14px;">🔍 検索されているキーワード</h3>
 <table style="width: 100%; border-collapse: collapse;">
-<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 4px 0; color: #999; font-size: 11px;">キーワード</td><td style="text-align: right; color: #999; font-size: 11px;">順位</td><td style="text-align: right; color: #999; font-size: 11px;">クリック</td></tr>
-${gscKeywords.slice(0, 10).map((kw) => `<tr><td style="padding: 3px 0;">${kw.keyword}</td><td style="text-align: right;">${kw.position}位</td><td style="text-align: right;">${kw.clicks}</td></tr>`).join('')}
+<tr style="border-bottom: 1px solid #ddd;"><td style="padding: 4px 0; color: #999; font-size: 11px;">キーワード</td><td style="text-align: right; color: #999; font-size: 11px;">平均順位</td><td style="text-align: right; color: #999; font-size: 11px;">クリック</td></tr>
+${gscKeywords.slice(0, 10).map((kw) => `<tr><td style="padding: 3px 0;">${kw.keyword}</td><td style="text-align: right;">${Number(kw.position).toFixed(1)}位</td><td style="text-align: right;">${kw.clicks}</td></tr>`).join('')}
 </table>
 </div>` : ''}`;
 
@@ -144,7 +143,7 @@ ${gscKeywords.slice(0, 10).map((kw) => `<tr><td style="padding: 3px 0;">${kw.key
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="font-family: 'Hiragino Sans', 'Meiryo', sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 <p>${contactName}様</p>
-<p>お世話になっております。花のやの花岡です。<br>${m}月度のサイトレポートをお届けします。</p>
+<p>お世話になっております。株式会社花のやです。<br>${m}月度のサイトレポートをお届けします。</p>
 
 <div style="background: #f8f8f8; border-left: 4px solid #d2151a; padding: 16px; margin: 24px 0;">
 <h3 style="margin: 0 0 12px; color: #d2151a;">📊 今月のサマリー</h3>
@@ -179,7 +178,7 @@ ${
 </div>
 
 <div style="background: #d2151a; color: white; padding: 12px 20px; border-radius: 4px; text-align: center; margin: 24px 0;">
-▶ ご興味のある項目があればこのメールに返信してください。
+ご関心をお持ちいただいた項目がございましたら、本メールへのご返信にてお知らせください。
 </div>
 
 ${detailHtml}
@@ -188,7 +187,9 @@ ${detailHtml}
 <p style="font-size: 13px; color: #666;">
 ご不明点があればいつでもご連絡ください。<br>
 引き続きよろしくお願いいたします。<br><br>
-株式会社花のや｜花岡正和<br>
+株式会社花のや<br>
+〒460-0008 <br>
+名古屋市中区栄2-14-5 山本屋本店栄ビル7階<br>
 TEL 052-211-9898<br>
 https://www.hanano-ya.jp/
 </p>

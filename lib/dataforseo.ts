@@ -24,6 +24,7 @@ export async function fetchKeywordRankings(
   keywords: { keyword: string; target_url: string | null }[],
   domain: string
 ): Promise<SEOKeywordData[]> {
+  const normalizedDomain = normalizeDomain(domain);
   const results: SEOKeywordData[] = [];
 
   // バッチで処理（DataForSEO は配列で送信可能）
@@ -47,7 +48,7 @@ export async function fetchKeywordRankings(
         for (const result of task.result) {
           if (result.items) {
             for (const item of result.items) {
-              if (item.type === 'organic' && item.domain === domain) {
+              if (item.type === 'organic' && normalizeDomain(item.domain) === normalizedDomain) {
                 currentRank = item.rank_absolute;
                 break;
               }
@@ -68,10 +69,20 @@ export async function fetchKeywordRankings(
   return results;
 }
 
+function normalizeDomain(input: string): string {
+  return input
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/+$/, '')
+    .toLowerCase();
+}
+
 export async function fetchCompetitorAnalysis(
   domain: string,
   knownCompetitors: string[]
 ): Promise<SEOCompetitorData[]> {
+  const normalizedKnown = knownCompetitors.map(normalizeDomain);
+
   const data = await dataforseoFetch('/v3/dataforseo_labs/google/competitors_domain/live', [
     {
       target: domain,
@@ -88,9 +99,10 @@ export async function fetchCompetitorAnalysis(
 
     for (const item of items) {
       const competitorDomain = item.domain;
+      const normalizedCompetitor = normalizeDomain(competitorDomain);
       // 登録済みの競合ドメインか、上位の競合のみ含める
       if (
-        knownCompetitors.includes(competitorDomain) ||
+        normalizedKnown.includes(normalizedCompetitor) ||
         competitors.length < 3
       ) {
         competitors.push({
