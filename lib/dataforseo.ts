@@ -77,6 +77,17 @@ function normalizeDomain(input: string): string {
     .toLowerCase();
 }
 
+// 大手・汎用ドメインは競合として無意味なので除外
+const GENERIC_DOMAINS = new Set([
+  'youtube.com', 'google.com', 'google.co.jp', 'yahoo.co.jp',
+  'amazon.co.jp', 'amazon.com', 'wikipedia.org', 'facebook.com',
+  'twitter.com', 'x.com', 'instagram.com', 'tiktok.com',
+  'note.com', 'ameblo.jp', 'hatena.ne.jp', 'hatenablog.com',
+  'livedoor.jp', 'fc2.com', 'rakuten.co.jp', 'kakaku.com',
+  'tabelog.com', 'hotpepper.jp', 'suumo.jp', 'indeed.com',
+  'linkedin.com', 'pinterest.com', 'reddit.com',
+]);
+
 export async function fetchCompetitorAnalysis(
   domain: string,
   knownCompetitors: string[]
@@ -89,11 +100,12 @@ export async function fetchCompetitorAnalysis(
       target: normalizedTarget,
       language_name: 'Japanese',
       location_name: 'Japan',
-      limit: 10,
+      limit: 30,
     },
   ]);
 
   const competitors: SEOCompetitorData[] = [];
+  const autoCompetitors: SEOCompetitorData[] = [];
 
   if (data.tasks?.[0]?.result?.[0]?.items) {
     const items = data.tasks[0].result[0].items;
@@ -103,23 +115,41 @@ export async function fetchCompetitorAnalysis(
       const normalizedCompetitor = normalizeDomain(competitorDomain);
       // 自ドメインは除外
       if (normalizedCompetitor === normalizedTarget) continue;
-      // 登録済みの競合ドメインか、上位の競合のみ含める
-      if (
-        normalizedKnown.includes(normalizedCompetitor) ||
-        competitors.length < 3
-      ) {
-        competitors.push({
-          domain: competitorDomain,
-          trend: item.avg_position < 10 ? '上昇' : '横ばい',
-          rank_change: `${item.intersections || 0}keywords overlap`,
-          keywords_overlap: [],
-          threat_comment: `${competitorDomain}が${item.intersections || 0}個の重複キーワードで競合中`,
-        });
+
+      const entry: SEOCompetitorData = {
+        domain: competitorDomain,
+        trend: item.avg_position < 10 ? '上昇' : '横ばい',
+        rank_change: `${item.intersections || 0}keywords overlap`,
+        keywords_overlap: [],
+        threat_comment: `${competitorDomain}が${item.intersections || 0}個の重複キーワードで競合中`,
+      };
+
+      // 登録済み競合は優先的に含める
+      if (normalizedKnown.includes(normalizedCompetitor)) {
+        competitors.push(entry);
+      } else if (!GENERIC_DOMAINS.has(normalizedCompetitor) && autoCompetitors.length < 3) {
+        autoCompetitors.push(entry);
       }
     }
   }
 
-  return competitors;
+  // API結果に含まれなかった登録済み競合も追加
+  const foundKnown = new Set(competitors.map((c) => normalizeDomain(c.domain)));
+  for (const known of knownCompetitors) {
+    if (!foundKnown.has(normalizeDomain(known))) {
+      competitors.push({
+        domain: normalizeDomain(known),
+        trend: '横ばい',
+        rank_change: 'データ不足',
+        keywords_overlap: [],
+        threat_comment: `${normalizeDomain(known)}（登録済み競合・詳細データ取得不可）`,
+      });
+    }
+  }
+
+  // 登録済み競合 + 自動検出（合計最大5つ）
+  const remaining = Math.max(0, 3 - competitors.length);
+  return [...competitors, ...autoCompetitors.slice(0, remaining)];
 }
 
 export async function fetchSEOData(
