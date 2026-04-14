@@ -165,6 +165,10 @@ export default function CustomerDetailPage() {
           <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b">
             競合ドメイン（最大3つ）
           </h3>
+          <p className="text-xs text-gray-500 mb-4">
+            実際のビジネス競合のドメインを入力してください。<br />
+            登録したドメインの検索順位変動を毎月レポートでお知らせします。（最大3つ）
+          </p>
           <div className="space-y-2 mb-4">
             {competitors.map((c, i) => (
               <div key={i} className="flex items-center gap-2 bg-gray-50 rounded px-3 py-2">

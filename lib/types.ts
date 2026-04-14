@@ -138,9 +138,11 @@ export interface SEOKeywordData {
 
 export interface SEOCompetitorData {
   domain: string;
-  trend: string;
-  rank_change: string;
-  keywords_overlap: string[];
+  current_rank: number | null;
+  previous_rank: number | null;
+  rank_change: number | null;
+  trend: '上昇' | '下降' | '変化なし' | 'データなし';
+  keywords_found: string[];
   threat_comment: string;
 }
 

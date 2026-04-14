@@ -20,17 +20,33 @@ async function dataforseoFetch(endpoint: string, body: unknown) {
   return response.json();
 }
 
-export async function fetchKeywordRankings(
-  keywords: { keyword: string; target_url: string | null }[],
-  domain: string
-): Promise<SEOKeywordData[]> {
-  const normalizedDomain = normalizeDomain(domain);
-  const results: SEOKeywordData[] = [];
+export interface SERPResult {
+  keyword: string;
+  target_url: string | null;
+  own_rank: number | null;
+  top_domains: { domain: string; rank: number }[];
+}
 
-  // バッチで処理（DataForSEO は配列で送信可能）
+export function normalizeDomain(input: string): string {
+  return input
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/+$/, '')
+    .toLowerCase();
+}
+
+export async function fetchKeywordRanks(
+  keywords: { keyword: string; target_url: string | null }[],
+  ownDomain: string
+): Promise<SERPResult[]> {
+  const normalizedOwn = normalizeDomain(ownDomain);
+  const results: SERPResult[] = [];
+
+  if (keywords.length === 0) return results;
+
   const tasks = keywords.map((kw) => ({
     keyword: kw.keyword,
-    location_code: 1009564, // 日本
+    location_code: 1009564,
     language_code: 'ja',
     device: 'desktop',
     depth: 100,
@@ -42,16 +58,21 @@ export async function fetchKeywordRankings(
     for (let i = 0; i < data.tasks.length; i++) {
       const task = data.tasks[i];
       const keyword = keywords[i];
-      let currentRank: number | null = null;
+      let ownRank: number | null = null;
+      const topDomains: { domain: string; rank: number }[] = [];
 
       if (task.result) {
         for (const result of task.result) {
-          if (result.items) {
-            for (const item of result.items) {
-              if (item.type === 'organic' && normalizeDomain(item.domain) === normalizedDomain) {
-                currentRank = item.rank_absolute;
-                break;
-              }
+          if (!result.items) continue;
+          for (const item of result.items) {
+            if (item.type !== 'organic') continue;
+            const rank = item.rank_absolute;
+            const domain = normalizeDomain(item.domain || '');
+            if (ownRank === null && domain === normalizedOwn) {
+              ownRank = rank;
+            }
+            if (rank <= 20) {
+              topDomains.push({ domain, rank });
             }
           }
         }
@@ -59,9 +80,9 @@ export async function fetchKeywordRankings(
 
       results.push({
         keyword: keyword.keyword,
-        current_rank: currentRank,
-        previous_rank: null, // 前月のデータは前回レポートから取得
-        url: keyword.target_url || '',
+        target_url: keyword.target_url,
+        own_rank: ownRank,
+        top_domains: topDomains,
       });
     }
   }
@@ -69,101 +90,108 @@ export async function fetchKeywordRankings(
   return results;
 }
 
-function normalizeDomain(input: string): string {
-  return input
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .replace(/\/+$/, '')
-    .toLowerCase();
+export function extractKeywordData(serpResults: SERPResult[]): SEOKeywordData[] {
+  return serpResults.map((r) => ({
+    keyword: r.keyword,
+    current_rank: r.own_rank,
+    previous_rank: null,
+    url: r.target_url || '',
+  }));
 }
 
-// 大手・汎用ドメインは競合として無意味なので除外
-const GENERIC_DOMAINS = new Set([
-  'youtube.com', 'google.com', 'google.co.jp', 'yahoo.co.jp',
-  'amazon.co.jp', 'amazon.com', 'wikipedia.org', 'facebook.com',
-  'twitter.com', 'x.com', 'instagram.com', 'tiktok.com',
-  'note.com', 'ameblo.jp', 'hatena.ne.jp', 'hatenablog.com',
-  'livedoor.jp', 'fc2.com', 'rakuten.co.jp', 'kakaku.com',
-  'tabelog.com', 'hotpepper.jp', 'suumo.jp', 'indeed.com',
-  'linkedin.com', 'pinterest.com', 'reddit.com',
-]);
+function buildThreatComment(
+  keyword: string | null,
+  currentRank: number | null,
+  previousRank: number | null,
+  rankChange: number | null
+): string {
+  if (currentRank === null) {
+    return '今月は上位20位以内に見当たらず';
+  }
+  if (previousRank === null || rankChange === null) {
+    return `${keyword ?? ''}で現在${currentRank}位`;
+  }
+  if (rankChange > 0 && currentRank <= 10) {
+    return `${keyword ?? ''}で${currentRank}位に上昇中（先月比+${rankChange}）`;
+  }
+  if (rankChange > 0 && currentRank <= 20) {
+    return `${keyword ?? ''}で${currentRank}位まで接近中`;
+  }
+  if (rankChange === 0) {
+    return `${keyword ?? ''}で${currentRank}位で安定`;
+  }
+  return `${keyword ?? ''}で${currentRank}位（先月比${rankChange}）`;
+}
 
-export async function fetchCompetitorAnalysis(
-  domain: string,
-  knownCompetitors: string[]
-): Promise<SEOCompetitorData[]> {
-  const normalizedKnown = knownCompetitors.map(normalizeDomain);
-  const normalizedTarget = normalizeDomain(domain);
+export function extractCompetitorRanks(
+  knownCompetitors: string[],
+  serpResults: SERPResult[],
+  previousCompetitors: SEOCompetitorData[] = []
+): SEOCompetitorData[] {
+  const previousMap = new Map<string, SEOCompetitorData>();
+  for (const p of previousCompetitors) {
+    previousMap.set(normalizeDomain(p.domain), p);
+  }
 
-  const data = await dataforseoFetch('/v3/dataforseo_labs/google/competitors_domain/live', [
-    {
-      target: normalizedTarget,
-      language_name: 'Japanese',
-      location_name: 'Japan',
-      limit: 30,
-    },
-  ]);
+  return knownCompetitors.map((rawDomain) => {
+    const domain = normalizeDomain(rawDomain);
 
-  const competitors: SEOCompetitorData[] = [];
-  const autoCompetitors: SEOCompetitorData[] = [];
+    let bestRank: number | null = null;
+    let bestKeyword: string | null = null;
+    const keywordsFound: string[] = [];
 
-  if (data.tasks?.[0]?.result?.[0]?.items) {
-    const items = data.tasks[0].result[0].items;
-
-    for (const item of items) {
-      const competitorDomain = item.domain;
-      const normalizedCompetitor = normalizeDomain(competitorDomain);
-      // 自ドメインは除外
-      if (normalizedCompetitor === normalizedTarget) continue;
-
-      const entry: SEOCompetitorData = {
-        domain: competitorDomain,
-        trend: item.avg_position < 10 ? '上昇' : '横ばい',
-        rank_change: `${item.intersections || 0}keywords overlap`,
-        keywords_overlap: [],
-        threat_comment: `${competitorDomain}が${item.intersections || 0}個の重複キーワードで競合中`,
-      };
-
-      // 登録済み競合は優先的に含める
-      if (normalizedKnown.includes(normalizedCompetitor)) {
-        competitors.push(entry);
-      } else if (!GENERIC_DOMAINS.has(normalizedCompetitor) && autoCompetitors.length < 3) {
-        autoCompetitors.push(entry);
+    for (const serp of serpResults) {
+      const hit = serp.top_domains.find((d) => d.domain === domain);
+      if (!hit) continue;
+      keywordsFound.push(serp.keyword);
+      if (bestRank === null || hit.rank < bestRank) {
+        bestRank = hit.rank;
+        bestKeyword = serp.keyword;
       }
     }
-  }
 
-  // API結果に含まれなかった登録済み競合も追加
-  const foundKnown = new Set(competitors.map((c) => normalizeDomain(c.domain)));
-  for (const known of knownCompetitors) {
-    if (!foundKnown.has(normalizeDomain(known))) {
-      competitors.push({
-        domain: normalizeDomain(known),
-        trend: '横ばい',
-        rank_change: 'データ不足',
-        keywords_overlap: [],
-        threat_comment: `${normalizeDomain(known)}（登録済み競合・詳細データ取得不可）`,
-      });
+    const prev = previousMap.get(domain);
+    const previousRank = prev?.current_rank ?? null;
+
+    let rankChange: number | null = null;
+    if (bestRank !== null && previousRank !== null) {
+      rankChange = previousRank - bestRank;
     }
-  }
 
-  // 登録済み競合 + 自動検出（合計最大5つ）
-  const remaining = Math.max(0, 3 - competitors.length);
-  return [...competitors, ...autoCompetitors.slice(0, remaining)];
+    let trend: SEOCompetitorData['trend'];
+    if (bestRank === null) {
+      trend = 'データなし';
+    } else if (rankChange === null) {
+      trend = 'データなし';
+    } else if (rankChange > 0) {
+      trend = '上昇';
+    } else if (rankChange < 0) {
+      trend = '下降';
+    } else {
+      trend = '変化なし';
+    }
+
+    return {
+      domain,
+      current_rank: bestRank,
+      previous_rank: previousRank,
+      rank_change: rankChange,
+      trend,
+      keywords_found: keywordsFound,
+      threat_comment: buildThreatComment(bestKeyword, bestRank, previousRank, rankChange),
+    };
+  });
 }
 
 export async function fetchSEOData(
   domain: string,
   keywords: { keyword: string; target_url: string | null }[],
-  knownCompetitors: string[]
+  knownCompetitors: string[],
+  previousCompetitors: SEOCompetitorData[] = []
 ): Promise<SEOData> {
-  const [keywordData, competitorData] = await Promise.all([
-    fetchKeywordRankings(keywords, domain),
-    fetchCompetitorAnalysis(domain, knownCompetitors),
-  ]);
-
+  const serpResults = await fetchKeywordRanks(keywords, domain);
   return {
-    keywords: keywordData,
-    competitors: competitorData,
+    keywords: extractKeywordData(serpResults),
+    competitors: extractCompetitorRanks(knownCompetitors, serpResults, previousCompetitors),
   };
 }

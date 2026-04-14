@@ -39,6 +39,7 @@ const SYSTEM_PROMPT = `あなたは株式会社花のやのWebマーケティン
 - seo.gsc.keywords はGoogle Search Consoleの月間平均順位（小数値）
 - 両者は計測方法が異なるため数値が乖離する。レポート本文では混同しないこと
 - 順位に言及する場合はどちらのデータソースかを明確にすること
+- seo.competitors は登録済み競合ドメインの順位変動。rank_changeはプラスが上昇・マイナスが下降。keywords_foundはその競合が上位20位以内で検出されたキーワード名の配列。SERPの上位20位以内に出てこない場合はcurrent_rankがnull。
 
 【アラートレベルの判定基準】
 レベル1（通常）：一部の指標が改善余地あり。個別提案を出す。

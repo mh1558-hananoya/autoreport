@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         supabase.from('customer_competitors').select('*').eq('customer_id', customer.id),
         supabase.from('customer_pages').select('*').eq('customer_id', customer.id),
         supabase.from('monthly_memos').select('*').eq('customer_id', customer.id).eq('year_month', yearMonth).maybeSingle(),
-        supabase.from('reports').select('proposed_services').eq('customer_id', customer.id)
+        supabase.from('reports').select('proposed_services, seo_data').eq('customer_id', customer.id)
           .eq('year_month', targetMonth === 1
             ? `${targetYear - 1}-12`
             : `${targetYear}-${String(targetMonth - 1).padStart(2, '0')}`)
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       const competitors = (competitorsRes.data || []) as CustomerCompetitor[];
       const pages = (pagesRes.data || []) as CustomerPage[];
       const memo = memoRes.data as MonthlyMemo | null;
-      const lastReport = lastReportRes.data as Pick<Report, 'proposed_services'> | null;
+      const lastReport = lastReportRes.data as Pick<Report, 'proposed_services' | 'seo_data'> | null;
 
       // GA4データ取得（3回リトライ）
       let ga4Data;
@@ -73,13 +73,14 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // SEOデータ取得（3回リトライ）
+      // SEOデータ取得
       let seoData;
       try {
         seoData = await fetchSEOData(
           customer.domain,
           keywords.map((k) => ({ keyword: k.keyword, target_url: k.target_url })),
-          competitors.map((c) => c.competitor_domain)
+          competitors.map((c) => c.competitor_domain),
+          lastReport?.seo_data?.competitors ?? []
         );
       } catch (e) {
         console.error('DataForSEO failed:', e);
