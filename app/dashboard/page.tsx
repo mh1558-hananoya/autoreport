@@ -20,6 +20,38 @@ interface DashboardCustomer {
   last_month_converted: boolean;
 }
 
+// ヘッダー右の統計チップ。数値は等幅数字で桁を揃える。
+function StatChip({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div className="flex flex-col items-end">
+      <span
+        className={`tabular text-lg font-semibold leading-none ${accent ? 'text-accent' : 'text-foreground'}`}
+      >
+        {value}
+      </span>
+      <span className="mt-1 text-[11px] font-medium text-muted">{label}</span>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+      <div className="border-b border-border bg-surface-muted/60 px-4 py-3">
+        <div className="skeleton h-3 w-24" />
+      </div>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-border/70 px-4 py-4 last:border-0">
+          <div className="skeleton h-4 w-40" />
+          <div className="skeleton h-5 w-9" />
+          <div className="skeleton h-6 w-24 rounded-full" />
+          <div className="skeleton ml-auto h-4 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -53,40 +85,40 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [status]);
 
-  if (status === 'loading' || loading) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">読み込み中...</div>
-        </main>
-      </>
-    );
-  }
-
   const now = new Date();
   const targetYearMonth = getReportTargetMonth(now);
   const currentMonth = formatMonthLabel(targetYearMonth);
   const showBanner = now.getDate() >= 15;
 
+  const isLoading = status === 'loading' || loading;
+  const sentCount = customers.filter((c) => c.status === 'sent').length;
+  const l3Count = customers.filter((c) => c.alert_level === 3).length;
+
   return (
     <>
       <Navigation />
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">{currentMonth} レポート管理</h1>
-          <div className="flex gap-4 text-sm text-gray-500">
-            <span>全{customers.length}社</span>
-            <span>送信済み {customers.filter((c) => c.status === 'sent').length}社</span>
-            <span className="text-red-600">
-              L3 {customers.filter((c) => c.alert_level === 3).length}社
-            </span>
+      <main className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+        <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-faint">月次レポート</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              {currentMonth} 管理
+            </h1>
           </div>
-        </div>
+          {!isLoading && (
+            <div className="flex items-center gap-6 rounded-xl border border-border bg-surface px-5 py-2.5 shadow-card">
+              <StatChip label="全顧客" value={customers.length} />
+              <span className="h-8 w-px bg-border" aria-hidden />
+              <StatChip label="送信済み" value={sentCount} />
+              <span className="h-8 w-px bg-border" aria-hidden />
+              <StatChip label="L3 アラート" value={l3Count} accent={l3Count > 0} />
+            </div>
+          )}
+        </header>
 
-        {showBanner && <AlertBanner unrecoredCount={unrecordedCount} />}
+        {showBanner && !isLoading && <AlertBanner unrecoredCount={unrecordedCount} />}
 
-        <CustomerTable customers={customers} />
+        {isLoading ? <DashboardSkeleton /> : <CustomerTable customers={customers} />}
       </main>
     </>
   );

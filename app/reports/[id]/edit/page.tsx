@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import ReportEditor from '@/components/reports/ReportEditor';
+import { PageShell, PageState, Card, btnPrimary, btnSecondary } from '@/components/ui/kit';
 import { Report, ClaudeReportResponse, GA4Data, SEOData } from '@/lib/types';
 
 export default function ReportEditPage() {
@@ -87,61 +87,47 @@ export default function ReportEditPage() {
   };
 
   if (loading) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">読み込み中...</div>
-        </main>
-      </>
-    );
+    return <PageState message="読み込み中…" width="max-w-7xl" />;
   }
 
   if (!report || !claude) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">レポートが見つかりません</div>
-        </main>
-      </>
-    );
+    return <PageState message="レポートが見つかりません" width="max-w-7xl" />;
   }
 
   const ga4 = report.ga4_data as GA4Data | null;
   const seo = report.seo_data as SEOData | null;
 
   return (
-    <>
-      <Navigation />
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* L3 アラートバナー */}
-        {claude.alert_level === 3 && (
-          <div className="bg-red-50 border border-red-300 rounded-md p-4 mb-6">
-            <p className="text-sm text-red-800 font-medium">
-              この顧客のサイトは深刻な状況です。提言欄は自動的に「お電話でご説明」に設定されています。送信前に管理者の判断を確認してください。
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">レポート編集</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={handleRegenerateAll}
-              disabled={regenerating}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50"
-            >
-              {regenerating ? '再生成中...' : '全体を再生成'}
-            </button>
-          </div>
+    <PageShell width="max-w-7xl">
+      {/* L3 アラートバナー */}
+      {claude.alert_level === 3 && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3.5">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+            </svg>
+          </span>
+          <p className="text-sm font-medium leading-relaxed text-accent">
+            この顧客のサイトは深刻な状況です。提言欄は自動的に「お電話でご説明」に設定されています。送信前に管理者の判断を確認してください。
+          </p>
         </div>
+      )}
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* 左ペイン：生データ */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">GA4 サマリー</h3>
+      <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-widest text-faint">レポート</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">レポート編集</h1>
+        </div>
+        <button onClick={handleRegenerateAll} disabled={regenerating} className={btnSecondary}>
+          {regenerating ? '再生成中…' : '全体を再生成'}
+        </button>
+      </header>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* 左ペイン：生データ */}
+        <div className="space-y-4">
+          <Card className="p-5">
+            <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">GA4 サマリー</h3>
               {ga4 ? (
                 <div className="space-y-1 text-sm">
                   <p>訪問者数: {ga4.sessions.current.toLocaleString()} (前月比 {ga4.sessions.diff_pct > 0 ? '+' : ''}{ga4.sessions.diff_pct}%)</p>
@@ -167,94 +153,85 @@ export default function ReportEditPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">データなし</p>
+                <p className="text-sm text-faint">データなし</p>
               )}
-            </div>
+          </Card>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">検索パフォーマンス（Search Console）</h3>
-              {seo?.gsc ? (
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50 rounded p-2">
-                    <p>クリック数: {seo.gsc.totals.clicks.toLocaleString()}</p>
-                    <p>表示回数: {seo.gsc.totals.impressions.toLocaleString()}</p>
-                    <p>CTR: {seo.gsc.totals.ctr}%</p>
-                    <p>平均順位: {seo.gsc.totals.position}位</p>
+          <Card className="p-5">
+            <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">検索パフォーマンス（Search Console）</h3>
+            {seo?.gsc ? (
+              <div className="space-y-2 text-sm">
+                <div className="tabular grid grid-cols-2 gap-2 rounded-lg bg-surface-muted/60 p-3 text-xs">
+                  <p>クリック数: {seo.gsc.totals.clicks.toLocaleString()}</p>
+                  <p>表示回数: {seo.gsc.totals.impressions.toLocaleString()}</p>
+                  <p>CTR: {seo.gsc.totals.ctr}%</p>
+                  <p>平均順位: {seo.gsc.totals.position}位</p>
+                </div>
+                <p className="mt-2 text-xs text-muted">主要キーワード（上位20）:</p>
+                {seo.gsc.keywords.slice(0, 20).map((kw, i) => (
+                  <div key={i} className="flex justify-between text-xs">
+                    <span className="mr-2 flex-1 truncate">{kw.keyword}</span>
+                    <span className="tabular whitespace-nowrap text-muted">{kw.position}位 / {kw.clicks}クリック</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">主要キーワード（上位20）:</p>
-                  {seo.gsc.keywords.slice(0, 20).map((kw, i) => (
-                    <div key={i} className="flex justify-between text-xs">
-                      <span className="truncate flex-1 mr-2">{kw.keyword}</span>
-                      <span className="text-gray-500 whitespace-nowrap">{kw.position}位 / {kw.clicks}クリック</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">データなし</p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-faint">データなし</p>
+            )}
+          </Card>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">競合動向</h3>
-              {seo?.competitors && seo.competitors.length > 0 ? (
-                <div className="space-y-2">
-                  {seo.competitors.map((c, i) => (
-                    <div key={i} className="text-sm">
-                      <p className="font-medium">{c.domain}</p>
-                      <p className="text-xs text-gray-500">{c.threat_comment}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">データなし</p>
-              )}
-            </div>
+          <Card className="p-5">
+            <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">競合動向</h3>
+            {seo?.competitors && seo.competitors.length > 0 ? (
+              <div className="space-y-2">
+                {seo.competitors.map((c, i) => (
+                  <div key={i} className="text-sm">
+                    <p className="font-medium text-foreground">{c.domain}</p>
+                    <p className="text-xs text-muted">{c.threat_comment}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-faint">データなし</p>
+            )}
+          </Card>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">今月の提案サービス</h3>
-              {claude.proposals.length > 0 ? (
-                <ul className="text-sm space-y-1">
-                  {claude.proposals.map((p, i) => (
-                    <li key={i}>・{p.display_name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-400">
-                  {claude.alert_level === 3 ? 'L3: 相談誘導' : '提案なし'}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* 右ペイン：編集 */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <ReportEditor
-              report={claude}
-              subject={subject}
-              onSubjectChange={setSubject}
-              onChange={setClaude}
-              onRegenerateSection={handleRegenerateSection}
-            />
-
-            <div className="mt-6 flex gap-3 justify-end">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-6 py-2 bg-gray-800 text-white rounded-md text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
-              >
-                {saving ? '保存中...' : '保存'}
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-6 py-2 bg-accent text-white rounded-md text-sm font-medium hover:opacity-90 disabled:opacity-50"
-              >
-                プレビューへ進む
-              </button>
-            </div>
-          </div>
+          <Card className="p-5">
+            <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">今月の提案サービス</h3>
+            {claude.proposals.length > 0 ? (
+              <ul className="space-y-1 text-sm">
+                {claude.proposals.map((p, i) => (
+                  <li key={i}>・{p.display_name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-faint">
+                {claude.alert_level === 3 ? 'L3: 相談誘導' : '提案なし'}
+              </p>
+            )}
+          </Card>
         </div>
-      </main>
-    </>
+
+        {/* 右ペイン：編集 */}
+        <Card className="p-6">
+          <ReportEditor
+            report={claude}
+            subject={subject}
+            onSubjectChange={setSubject}
+            onChange={setClaude}
+            onRegenerateSection={handleRegenerateSection}
+          />
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button onClick={handleSave} disabled={saving} className={btnSecondary}>
+              {saving ? '保存中…' : '保存'}
+            </button>
+            <button onClick={handleSave} disabled={saving} className={btnPrimary}>
+              プレビューへ進む
+            </button>
+          </div>
+        </Card>
+      </div>
+    </PageShell>
   );
 }

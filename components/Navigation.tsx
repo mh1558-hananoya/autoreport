@@ -7,33 +7,52 @@ import { signOut } from 'next-auth/react';
 export default function Navigation() {
   const pathname = usePathname();
 
-  const isActive = (path: string) =>
-    pathname.startsWith(path) ? 'text-accent font-semibold' : 'text-gray-600 hover:text-gray-900';
+  const links = [
+    { href: '/dashboard', label: 'ダッシュボード' },
+    { href: '/customers/new', label: '顧客登録' },
+  ];
 
   return (
-    <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-14 items-center">
-          <div className="flex items-center gap-8">
-            <Link href="/dashboard" className="text-lg font-bold text-accent">
-              花のや
-            </Link>
-            <div className="flex gap-6 text-sm">
-              <Link href="/dashboard" className={isActive('/dashboard')}>
-                ダッシュボード
-              </Link>
-              <Link href="/customers/new" className={isActive('/customers/new')}>
-                顧客登録
-              </Link>
-            </div>
+    <nav
+      className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-md"
+      aria-label="メインナビゲーション"
+    >
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-9">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <span className="inline-block h-3.5 w-3.5 rounded-sm bg-accent" aria-hidden />
+            <span className="text-base font-bold tracking-tight text-foreground">花のや</span>
+            <span className="hidden text-xs font-medium text-faint sm:inline">レポート管理</span>
+          </Link>
+          <div className="flex gap-1 text-sm">
+            {links.map((l) => {
+              const active = pathname.startsWith(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`relative rounded-md px-3 py-1.5 font-medium transition-colors duration-200 ${
+                    active
+                      ? 'text-accent'
+                      : 'text-muted hover:bg-surface-muted hover:text-foreground'
+                  }`}
+                >
+                  {l.label}
+                  {active && (
+                    <span className="absolute inset-x-3 -bottom-[13px] h-0.5 rounded-full bg-accent" />
+                  )}
+                </Link>
+              );
+            })}
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            ログアウト
-          </button>
         </div>
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-muted transition-colors duration-200 hover:bg-surface-muted hover:text-foreground"
+        >
+          ログアウト
+        </button>
       </div>
     </nav>
   );

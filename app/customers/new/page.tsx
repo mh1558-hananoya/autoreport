@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
+import Link from 'next/link';
 import CustomerForm from '@/components/customers/CustomerForm';
+import { PageShell, PageHeader, Card, linkAction } from '@/components/ui/kit';
 import { Customer } from '@/lib/types';
 
 export default function NewCustomerPage() {
@@ -23,24 +24,33 @@ export default function NewCustomerPage() {
       router.push(`/customers/${customer.id}`);
     } else {
       const body = await res.json().catch(() => null);
-      setError(body?.error || '保存に失敗しました。入力内容を確認してください。');
+      setError(body?.error || '保存できませんでした。入力内容をご確認ください。');
     }
   };
 
   return (
-    <>
-      <Navigation />
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-xl font-bold mb-6">顧客新規登録</h1>
-        {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 text-sm rounded-md p-3 mb-4">
-            {error}
-          </div>
-        )}
-        <div className="bg-white rounded-lg shadow p-6">
-          <CustomerForm onSave={handleSave} />
+    <PageShell>
+      <PageHeader
+        eyebrow="顧客管理"
+        title="顧客の新規登録"
+        right={
+          <Link href="/dashboard" className={linkAction}>
+            ← ダッシュボード
+          </Link>
+        }
+      />
+      {error && (
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
+          <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+          {error}
         </div>
-      </main>
-    </>
+      )}
+      <Card className="p-6 sm:p-8">
+        <CustomerForm onSave={handleSave} />
+      </Card>
+    </PageShell>
   );
 }

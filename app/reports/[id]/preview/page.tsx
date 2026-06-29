@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
 import EmailPreview from '@/components/reports/EmailPreview';
+import { PageShell, PageHeader, PageState, Card, btnPrimary, btnSecondary } from '@/components/ui/kit';
 import { Report, Customer } from '@/lib/types';
 
 export default function ReportPreviewPage() {
@@ -15,6 +15,7 @@ export default function ReportPreviewPage() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [sending, setSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function ReportPreviewPage() {
 
   const handleSend = async () => {
     setSending(true);
+    setSendError('');
     try {
       const res = await fetch('/api/reports/send', {
         method: 'POST',
@@ -47,97 +49,88 @@ export default function ReportPreviewPage() {
       if (res.ok) {
         router.push('/dashboard');
       } else {
-        const data = await res.json();
-        alert(`送信エラー: ${data.error}`);
+        const data = await res.json().catch(() => null);
+        setSendError(data?.error || '送信できませんでした。時間をおいて再度お試しください。');
+        setShowConfirm(false);
       }
     } finally {
       setSending(false);
-      setShowConfirm(false);
     }
   };
 
   if (loading) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">読み込み中...</div>
-        </main>
-      </>
-    );
+    return <PageState message="読み込み中…" />;
   }
 
   if (!report || !customer) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">レポートが見つかりません</div>
-        </main>
-      </>
-    );
+    return <PageState message="レポートが見つかりません" />;
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">メールプレビュー</h1>
-          <span className="text-sm text-gray-500">{customer.company_name}</span>
-        </div>
+    <PageShell>
+      <PageHeader
+        eyebrow={customer.company_name}
+        title="メールプレビュー"
+        right={<span className="tabular text-sm text-muted">{customer.email}</span>}
+      />
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <EmailPreview
-            subject={report.subject || ''}
-            bodyHtml={report.body_html || ''}
-            email={customer.email}
-          />
+      {sendError && (
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
+          <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+          {sendError}
         </div>
+      )}
 
-        <div className="flex justify-between mt-6">
-          <button
-            onClick={() => router.push(`/reports/${id}/edit`)}
-            className="px-6 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
-          >
-            ← 編集に戻る
-          </button>
-          <button
-            onClick={() => setShowConfirm(true)}
-            disabled={report.status === 'sent'}
-            className="px-6 py-2 bg-accent text-white rounded-md text-sm font-medium hover:opacity-90 disabled:opacity-50"
-          >
-            {report.status === 'sent' ? '送信済み' : '送信する'}
-          </button>
-        </div>
+      <Card className="p-6">
+        <EmailPreview
+          subject={report.subject || ''}
+          bodyHtml={report.body_html || ''}
+          email={customer.email}
+        />
+      </Card>
 
-        {/* 送信確認ダイアログ */}
-        {showConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-lg font-bold mb-2">送信確認</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                {customer.company_name}（{customer.email}）へレポートを送信します。よろしいですか？
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={sending}
-                  className="px-4 py-2 bg-accent text-white rounded-md text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                >
-                  {sending ? '送信中...' : '送信する'}
-                </button>
-              </div>
+      <div className="mt-6 flex justify-between">
+        <button onClick={() => router.push(`/reports/${id}/edit`)} className={btnSecondary}>
+          ← 編集に戻る
+        </button>
+        <button
+          onClick={() => setShowConfirm(true)}
+          disabled={report.status === 'sent'}
+          className={btnPrimary}
+        >
+          {report.status === 'sent' ? '送信済み' : '送信する'}
+        </button>
+      </div>
+
+      {/* 送信確認ダイアログ */}
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-card-hover">
+            <h2 id="confirm-title" className="text-lg font-bold tracking-tight text-foreground">
+              送信の確認
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              {customer.company_name}（<span className="tabular">{customer.email}</span>）へレポートを送信します。よろしいですか？
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setShowConfirm(false)} className={btnSecondary}>
+                キャンセル
+              </button>
+              <button onClick={handleSend} disabled={sending} className={btnPrimary}>
+                {sending ? '送信中…' : '送信する'}
+              </button>
             </div>
           </div>
-        )}
-      </main>
-    </>
+        </div>
+      )}
+    </PageShell>
   );
 }

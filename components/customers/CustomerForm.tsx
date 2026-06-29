@@ -2,13 +2,17 @@
 
 import { useState } from 'react';
 import { Customer } from '@/lib/types';
+import { inputClass, labelClass, btnPrimary, SectionTitle } from '@/components/ui/kit';
 
 interface CustomerFormProps {
   customer?: Partial<Customer>;
   onSave: (data: Partial<Customer>) => Promise<void>;
+  // 保存ボタンをフォーム外（ページ最下部など）に出したい場合に使う
+  formId?: string;
+  hideSubmit?: boolean;
 }
 
-export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
+export default function CustomerForm({ customer, onSave, formId, hideSubmit }: CustomerFormProps) {
   const [form, setForm] = useState({
     company_name: customer?.company_name || '',
     contact_name: customer?.contact_name || '',
@@ -41,18 +45,14 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
     }
   };
 
-  const inputClass = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent';
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-9">
       {/* ステップ1: 基本情報 */}
       <section>
-        <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b">
-          ステップ1: 基本情報（必須）
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <SectionTitle>ステップ1: 基本情報（必須）</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">会社名 *</label>
+            <label className={labelClass}>会社名 *</label>
             <input
               required
               className={inputClass}
@@ -62,7 +62,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">担当者名 *</label>
+            <label className={labelClass}>担当者名 *</label>
             <input
               required
               className={inputClass}
@@ -72,7 +72,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">メールアドレス *</label>
+            <label className={labelClass}>メールアドレス *</label>
             <input
               required
               type="email"
@@ -83,7 +83,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">対象ドメイン *</label>
+            <label className={labelClass}>対象ドメイン *</label>
             <input
               required
               className={inputClass}
@@ -93,7 +93,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">GA4 プロパティID *</label>
+            <label className={labelClass}>GA4 プロパティID *</label>
             <input
               required
               className={inputClass}
@@ -103,7 +103,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">GA4 コンバージョンイベント名</label>
+            <label className={labelClass}>GA4 コンバージョンイベント名</label>
             <input
               className={inputClass}
               placeholder="例：contact（未入力ならcontact）"
@@ -116,12 +116,10 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
 
       {/* ステップ2: ビジネス文脈 */}
       <section>
-        <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b">
-          ステップ2: ビジネス文脈（推奨）
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
+        <SectionTitle>ステップ2: ビジネス文脈（推奨）</SectionTitle>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">業種</label>
+            <label className={labelClass}>業種</label>
             <input
               className={inputClass}
               placeholder="例：外壁塗装"
@@ -130,7 +128,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">繁忙期</label>
+            <label className={labelClass}>繁忙期</label>
             <input
               className={inputClass}
               placeholder="例：3〜5月"
@@ -139,7 +137,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div className="col-span-2">
-            <label className="block text-xs text-gray-500 mb-1">提供サービスの概要</label>
+            <label className={labelClass}>提供サービスの概要</label>
             <textarea
               className={inputClass}
               rows={2}
@@ -149,7 +147,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">月間CV目標件数</label>
+            <label className={labelClass}>月間CV目標件数</label>
             <input
               type="number"
               className={inputClass}
@@ -159,7 +157,7 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">保守開始日</label>
+            <label className={labelClass}>保守開始日</label>
             <input
               type="date"
               className={inputClass}
@@ -170,15 +168,13 @@ export default function CustomerForm({ customer, onSave }: CustomerFormProps) {
         </div>
       </section>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-accent text-white px-6 py-2 rounded-md text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
-        >
-          {saving ? '保存中...' : '保存'}
-        </button>
-      </div>
+      {!hideSubmit && (
+        <div className="flex justify-end">
+          <button type="submit" disabled={saving} className={btnPrimary}>
+            {saving ? '保存中…' : '保存'}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

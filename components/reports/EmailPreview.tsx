@@ -33,17 +33,17 @@ export default function EmailPreview({ subject, bodyHtml, email }: EmailPreviewP
 
   return (
     <div className="space-y-4">
-      <div className="bg-gray-50 rounded-md p-4 space-y-2">
+      <dl className="space-y-2 rounded-lg border border-border bg-surface-muted/50 p-4">
         <div className="flex text-sm">
-          <span className="text-gray-500 w-16">宛先:</span>
-          <span>{email}</span>
+          <dt className="w-16 shrink-0 text-muted">宛先</dt>
+          <dd className="tabular text-foreground">{email}</dd>
         </div>
         <div className="flex text-sm">
-          <span className="text-gray-500 w-16">件名:</span>
-          <span className="font-medium">{subject}</span>
+          <dt className="w-16 shrink-0 text-muted">件名</dt>
+          <dd className="font-medium text-foreground">{subject}</dd>
         </div>
-      </div>
-      <div className="border border-gray-200 rounded-md overflow-hidden">
+      </dl>
+      <div className="overflow-hidden rounded-lg border border-border">
         <iframe
           ref={iframeRef}
           srcDoc={bodyHtml}

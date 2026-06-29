@@ -1,5 +1,7 @@
 'use client';
 
+import { inputClass } from '@/components/ui/kit';
+
 interface Proposal {
   service_id: string;
   display_name: string;
@@ -36,52 +38,44 @@ export default function ProposalList({ proposals, onChange }: ProposalListProps)
     onChange(updated);
   };
 
+  const iconBtn =
+    'flex h-6 w-6 items-center justify-center rounded text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent';
+
   return (
     <div className="space-y-3">
-      <label className="text-xs font-medium text-gray-500">提言</label>
+      <label className="text-xs font-medium text-muted">提言</label>
       {proposals.map((p, i) => (
-        <div key={`${p.service_id}-${i}`} className="border border-gray-200 rounded-md p-3 space-y-2">
+        <div key={`${p.service_id}-${i}`} className="space-y-2 rounded-lg border border-border bg-surface-muted/40 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              {i + 1}. {p.display_name}
+            <span className="text-sm font-medium text-foreground">
+              <span className="tabular text-faint">{i + 1}.</span> {p.display_name}
             </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => moveUp(i)}
-                disabled={i === 0}
-                className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30"
-              >
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => moveUp(i)} disabled={i === 0} className={iconBtn} aria-label="上へ">
                 ↑
               </button>
               <button
                 type="button"
                 onClick={() => moveDown(i)}
                 disabled={i === proposals.length - 1}
-                className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                className={iconBtn}
+                aria-label="下へ"
               >
                 ↓
               </button>
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="text-xs text-red-400 hover:text-red-600"
+                className="ml-1 text-xs font-medium text-muted transition-colors hover:text-accent"
               >
                 削除
               </button>
             </div>
           </div>
-          <textarea
-            className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
-            rows={2}
-            value={p.body}
-            onChange={(e) => updateBody(i, e.target.value)}
-          />
+          <textarea className={inputClass} rows={2} value={p.body} onChange={(e) => updateBody(i, e.target.value)} />
         </div>
       ))}
-      {proposals.length === 0 && (
-        <p className="text-sm text-gray-400">提案なし</p>
-      )}
+      {proposals.length === 0 && <p className="text-sm text-faint">提案なし</p>}
     </div>
   );
 }

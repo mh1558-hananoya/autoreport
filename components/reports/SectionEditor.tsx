@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { inputClass } from '@/components/ui/kit';
 
 interface SectionEditorProps {
   label: string;
@@ -24,33 +25,24 @@ export default function SectionEditor({ label, value, onChange, onRegenerate, mu
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-gray-500">{label}</label>
+        <label className="text-xs font-medium text-muted">{label}</label>
         {onRegenerate && (
           <button
             type="button"
             onClick={handleRegenerate}
             disabled={regenerating}
-            className="text-xs text-accent hover:underline disabled:opacity-50"
+            className="text-xs font-medium text-accent underline-offset-4 transition-colors hover:text-accent-hover hover:underline disabled:opacity-50"
           >
-            {regenerating ? '再生成中...' : 'このセクションだけ再生成'}
+            {regenerating ? '再生成中…' : 'このセクションだけ再生成'}
           </button>
         )}
       </div>
       {multiline ? (
-        <textarea
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-          rows={3}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <textarea className={inputClass} rows={3} value={value} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <input
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <input className={inputClass} value={value} onChange={(e) => onChange(e.target.value)} />
       )}
     </div>
   );

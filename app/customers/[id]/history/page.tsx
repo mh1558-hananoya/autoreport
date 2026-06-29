@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import Navigation from '@/components/Navigation';
+import { PageShell, PageHeader, PageState, Card, linkAction } from '@/components/ui/kit';
 import { Report, Customer } from '@/lib/types';
 
 export default function HistoryPage() {
@@ -55,77 +55,81 @@ export default function HistoryPage() {
   };
 
   if (loading) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">読み込み中...</div>
-        </main>
-      </>
-    );
+    return <PageState message="読み込み中…" />;
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">
-            {customer?.company_name || ''} - 送信履歴
-          </h1>
-          <Link href={`/customers/${id}`} className="text-sm text-accent hover:underline">
+    <PageShell>
+      <PageHeader
+        eyebrow={customer?.company_name || ''}
+        title="送信履歴"
+        right={
+          <Link href={`/customers/${id}`} className={linkAction}>
             ← 顧客詳細に戻る
           </Link>
-        </div>
+        }
+      />
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">月度</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">送信日</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">提案</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">反応</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {reports.map((r) => {
-                const [y, m] = r.year_month.split('-');
-                return (
-                  <tr key={r.id}>
-                    <td className="px-4 py-3 text-sm">{y}年{parseInt(m)}月</td>
-                    <td className="px-4 py-3 text-sm">
-                      {r.sent_at
-                        ? new Date(r.sent_at).toLocaleDateString('ja-JP', {
-                            month: 'numeric',
-                            day: 'numeric',
-                          })
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {r.proposed_services?.join('・') || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {r.converted_at ? (
-                        <span className="text-green-600">受注🎉</span>
-                      ) : r.replied_at ? (
-                        <span>返信💬</span>
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm flex gap-2">
+      <Card className="overflow-hidden">
+        <table className="min-w-full">
+          <thead>
+            <tr className="border-b border-border bg-surface-muted/60">
+              {['月度', '送信日', '提案', '反応', '操作'].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold tracking-wide text-muted">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {reports.map((r) => {
+              const [y, m] = r.year_month.split('-');
+              return (
+                <tr
+                  key={r.id}
+                  className="border-b border-border/70 transition-colors duration-150 last:border-0 hover:bg-surface-muted/50"
+                >
+                  <td className="tabular px-4 py-3.5 text-sm text-foreground">
+                    {y}年{parseInt(m)}月
+                  </td>
+                  <td className="tabular px-4 py-3.5 text-sm text-muted">
+                    {r.sent_at
+                      ? new Date(r.sent_at).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-3.5 text-sm text-foreground">
+                    {r.proposed_services?.join('・') || '—'}
+                  </td>
+                  <td className="px-4 py-3.5 text-sm">
+                    {r.converted_at ? (
+                      <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+                        受注
+                      </span>
+                    ) : r.replied_at ? (
+                      <span className="inline-flex items-center gap-1.5 text-foreground">
+                        <span className="h-1.5 w-1.5 rounded-full bg-sky-500" aria-hidden />
+                        返信あり
+                      </span>
+                    ) : (
+                      <span className="text-faint">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5 text-sm">
+                    <div className="flex items-center gap-3">
+                      <Link href={`/reports/${r.id}/preview`} className={linkAction}>
+                        プレビュー
+                      </Link>
                       <Link
                         href={`/reports/${r.id}/edit`}
-                        className="text-accent hover:underline"
+                        className="font-medium text-muted underline-offset-4 transition-colors hover:text-foreground hover:underline"
                       >
-                        内容確認
+                        編集
                       </Link>
                       {r.status === 'sent' && !r.replied_at && (
                         <button
                           onClick={() => markReplied(r.id)}
-                          className="text-blue-600 hover:underline"
+                          className="font-medium text-sky-600 transition-colors hover:text-sky-700 hover:underline"
                         >
                           返信あり
                         </button>
@@ -133,30 +137,30 @@ export default function HistoryPage() {
                       {r.status === 'sent' && !r.converted_at && (
                         <button
                           onClick={() => markConverted(r.id)}
-                          className="text-green-600 hover:underline"
+                          className="font-medium text-emerald-600 transition-colors hover:text-emerald-700 hover:underline"
                         >
                           受注
                         </button>
                       )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {reports.length === 0 && (
-            <div className="text-center py-12 text-gray-400">送信履歴がありません</div>
-          )}
-        </div>
-
-        {reports.length > 0 && (
-          <div className="mt-4 text-right">
-            <Link href={`/customers/${id}#memo`} className="text-sm text-accent hover:underline">
-              今月の補足メモを入力 →
-            </Link>
-          </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {reports.length === 0 && (
+          <div className="py-14 text-center text-sm text-muted">送信履歴がありません</div>
         )}
-      </main>
-    </>
+      </Card>
+
+      {reports.length > 0 && (
+        <div className="mt-4 text-right">
+          <Link href={`/customers/${id}#memo`} className={linkAction}>
+            今月の補足メモを入力 →
+          </Link>
+        </div>
+      )}
+    </PageShell>
   );
 }

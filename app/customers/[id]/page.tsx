@@ -2,10 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Navigation from '@/components/Navigation';
+import Link from 'next/link';
 import CustomerForm from '@/components/customers/CustomerForm';
 import KeywordList from '@/components/customers/KeywordList';
 import MonthlyMemoForm from '@/components/customers/MonthlyMemoForm';
+import {
+  PageShell,
+  PageHeader,
+  PageState,
+  Card,
+  SectionTitle,
+  inputClass,
+  btnPrimary,
+  btnSecondary,
+  linkAction,
+} from '@/components/ui/kit';
 import { Customer, CustomerKeyword, CustomerCompetitor, CustomerPage, Service } from '@/lib/types';
 
 export default function CustomerDetailPage() {
@@ -21,6 +32,9 @@ export default function CustomerDetailPage() {
   const [memo, setMemo] = useState<{ memo: string; exclude_services: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savedCustomer, setSavedCustomer] = useState(false);
 
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -74,12 +88,20 @@ export default function CustomerDetailPage() {
   }, [id, yearMonth]);
 
   const handleSave = async (data: Partial<Customer>) => {
-    await fetch(`/api/customers/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customer: data, keywords, competitors, pages }),
-    });
-    router.refresh();
+    setSavingCustomer(true);
+    setSavedCustomer(false);
+    try {
+      await fetch(`/api/customers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer: data, keywords, competitors, pages }),
+      });
+      setSavedCustomer(true);
+      setTimeout(() => setSavedCustomer(false), 2500);
+      router.refresh();
+    } finally {
+      setSavingCustomer(false);
+    }
   };
 
   const addCompetitor = (domain: string) => {
@@ -106,84 +128,110 @@ export default function CustomerDetailPage() {
   };
 
   if (loading) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">読み込み中...</div>
-        </main>
-      </>
-    );
+    return <PageState message="読み込み中…" />;
   }
 
   if (!customer) {
-    return (
-      <>
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center text-gray-400 py-20">顧客が見つかりません</div>
-        </main>
-      </>
-    );
+    return <PageState message="顧客が見つかりません" />;
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">{customer.company_name}</h1>
-          <div className="flex items-center gap-4">
+    <PageShell>
+      <PageHeader
+        eyebrow="顧客管理"
+        title={customer.company_name}
+        right={
+          <>
+            <Link href={`/customers/${id}/history`} className={linkAction}>
+              送信履歴 →
+            </Link>
             <button
               onClick={async () => {
-                if (!confirm(`${customer.company_name} を削除しますか？\n（レポート履歴は保持されます）`)) return;
+                if (
+                  !confirm(
+                    `${customer.company_name} を削除しますか？\n一覧から外れますが、過去のレポート履歴は保持されます。`
+                  )
+                )
+                  return;
                 setDeleting(true);
-                const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
-                if (res.ok) router.push('/dashboard');
-                else setDeleting(false);
+                setDeleteError('');
+                try {
+                  const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+                  if (res.ok) {
+                    router.push('/dashboard');
+                  } else {
+                    const body = await res.json().catch(() => null);
+                    setDeleteError(body?.error || '削除できませんでした。時間をおいて再度お試しください。');
+                    setDeleting(false);
+                  }
+                } catch {
+                  setDeleteError('通信に失敗しました。ネットワークをご確認ください。');
+                  setDeleting(false);
+                }
               }}
               disabled={deleting}
-              className="text-sm text-gray-400 hover:text-red-600 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 px-3 py-1.5 text-sm font-medium text-accent transition-colors duration-200 hover:bg-accent-soft disabled:opacity-50"
             >
-              {deleting ? '削除中...' : '削除'}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              </svg>
+              {deleting ? '削除中…' : '顧客を削除'}
             </button>
-            <a
-              href={`/customers/${id}/history`}
-              className="text-sm text-accent hover:underline"
-          >
-              送信履歴 →
-            </a>
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <CustomerForm customer={customer} onSave={handleSave} />
+      {deleteError && (
+        <div
+          role="alert"
+          className="mb-5 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent-soft px-4 py-3 text-sm text-accent"
+        >
+          <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+          {deleteError}
         </div>
+      )}
+
+      <div className="space-y-6">
+        <Card className="p-6 sm:p-8">
+          <CustomerForm customer={customer} onSave={handleSave} formId="customer-detail-form" hideSubmit />
+        </Card>
 
         {/* 競合ドメイン */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b">
+        <Card className="p-6">
+          <SectionTitle
+            hint={
+              <>
+                実際のビジネス競合のドメインを入力してください。
+                <br />
+                登録したドメインの検索順位変動を毎月レポートでお知らせします。（最大3つ）
+              </>
+            }
+          >
             競合ドメイン（最大3つ）
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">
-            実際のビジネス競合のドメインを入力してください。<br />
-            登録したドメインの検索順位変動を毎月レポートでお知らせします。（最大3つ）
-          </p>
-          <div className="space-y-2 mb-4">
-            {competitors.map((c, i) => (
-              <div key={i} className="flex items-center gap-2 bg-gray-50 rounded px-3 py-2">
-                <span className="text-sm flex-1">{c.competitor_domain}</span>
-                <button onClick={() => removeCompetitor(i)} className="text-red-400 hover:text-red-600 text-sm">
-                  削除
-                </button>
-              </div>
-            ))}
-          </div>
+          </SectionTitle>
+          {competitors.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {competitors.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-surface-muted/50 px-3 py-2"
+                >
+                  <span className="flex-1 text-sm text-foreground">{c.competitor_domain}</span>
+                  <button
+                    onClick={() => removeCompetitor(i)}
+                    className="text-xs font-medium text-muted transition-colors hover:text-accent"
+                  >
+                    削除
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {competitors.length < 3 && (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 id="new-competitor"
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                className={inputClass}
                 placeholder="例：competitor.co.jp（httpなし・ドメインのみ）"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -201,69 +249,73 @@ export default function CustomerDetailPage() {
                   addCompetitor(input.value);
                   input.value = '';
                 }}
-                className="px-4 py-2 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700"
+                className={`${btnSecondary} shrink-0`}
               >
                 追加
               </button>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* 主要ページ */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b">
-            主要ページ一覧
-          </h3>
-          <div className="space-y-3 mb-4">
-            {pages.map((p, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <input
-                  className="col-span-4 border border-gray-300 rounded px-2 py-1.5 text-sm"
-                  placeholder="例：/price/（パスのみ）"
-                  value={p.url}
-                  onChange={(e) => updatePage(i, 'url', e.target.value)}
-                />
-                <select
-                  className="col-span-2 border border-gray-300 rounded px-2 py-1.5 text-sm"
-                  value={p.purpose}
-                  onChange={(e) => updatePage(i, 'purpose', e.target.value)}
-                >
-                  <option value="集客">集客</option>
-                  <option value="CV">CV</option>
-                  <option value="ブランド">ブランド</option>
-                  <option value="採用">採用</option>
-                </select>
-                <input
-                  className="col-span-3 border border-gray-300 rounded px-2 py-1.5 text-sm"
-                  placeholder="例：料金ページ"
-                  value={p.description}
-                  onChange={(e) => updatePage(i, 'description', e.target.value)}
-                />
-                <input
-                  type="number"
-                  className="col-span-2 border border-gray-300 rounded px-2 py-1.5 text-sm"
-                  placeholder="CV貢献%"
-                  value={p.cv_contribution ?? ''}
-                  onChange={(e) => updatePage(i, 'cv_contribution', e.target.value ? Number(e.target.value) : null)}
-                />
-                <button onClick={() => removePage(i)} className="col-span-1 text-red-400 hover:text-red-600 text-sm">
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={addPage} className="text-sm text-accent hover:underline">
-            + ページを追加
+        <Card className="p-6">
+          <SectionTitle>主要ページ一覧</SectionTitle>
+          {pages.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {pages.map((p, i) => (
+                <div key={i} className="grid grid-cols-12 items-center gap-2">
+                  <input
+                    className={`${inputClass} col-span-4`}
+                    placeholder="例：/price/（パスのみ）"
+                    value={p.url}
+                    onChange={(e) => updatePage(i, 'url', e.target.value)}
+                  />
+                  <select
+                    className={`${inputClass} col-span-2`}
+                    value={p.purpose}
+                    onChange={(e) => updatePage(i, 'purpose', e.target.value)}
+                  >
+                    <option value="集客">集客</option>
+                    <option value="CV">CV</option>
+                    <option value="ブランド">ブランド</option>
+                    <option value="採用">採用</option>
+                  </select>
+                  <input
+                    className={`${inputClass} col-span-3`}
+                    placeholder="例：料金ページ"
+                    value={p.description}
+                    onChange={(e) => updatePage(i, 'description', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className={`${inputClass} tabular col-span-2`}
+                    placeholder="CV貢献%"
+                    value={p.cv_contribution ?? ''}
+                    onChange={(e) => updatePage(i, 'cv_contribution', e.target.value ? Number(e.target.value) : null)}
+                  />
+                  <button
+                    onClick={() => removePage(i)}
+                    className="col-span-1 text-muted transition-colors hover:text-accent"
+                    aria-label="削除"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button type="button" onClick={addPage} className={linkAction}>
+            ＋ ページを追加
           </button>
-        </div>
+        </Card>
 
         {/* キーワード */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <Card className="p-6">
           <KeywordList keywords={keywords} onChange={setKeywords} />
-        </div>
+        </Card>
 
         {/* 月次補足メモ */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <Card className="p-6">
           <MonthlyMemoForm
             customerId={id}
             yearMonth={yearMonth}
@@ -271,8 +323,29 @@ export default function CustomerDetailPage() {
             initialExcludeServices={memo?.exclude_services}
             services={services}
           />
+        </Card>
+
+        {/* ページ最下部の保存バー：基本情報・競合・主要ページ・監視キーワードをまとめて保存 */}
+        <div className="flex items-center justify-end gap-4 border-t border-border pt-6">
+          {savedCustomer && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+              保存しました
+            </span>
+          )}
+          <span className="text-xs text-faint">
+            基本情報・競合・主要ページ・監視キーワードを保存します（補足メモは上のボタンで保存）
+          </span>
+          <button
+            type="submit"
+            form="customer-detail-form"
+            disabled={savingCustomer}
+            className={btnPrimary}
+          >
+            {savingCustomer ? '保存中…' : '顧客情報を保存'}
+          </button>
         </div>
-      </main>
-    </>
+      </div>
+    </PageShell>
   );
 }

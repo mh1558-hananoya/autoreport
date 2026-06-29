@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service } from '@/lib/types';
+import { inputClass, labelClass, btnPrimary, SectionTitle } from '@/components/ui/kit';
 
 interface MonthlyMemoFormProps {
   customerId: string;
@@ -51,17 +52,13 @@ export default function MonthlyMemoForm({
   };
 
   return (
-    <section>
-      <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-2 border-b">
-        セクション4: 今月の補足情報（{yearMonth}）
-      </h3>
+    <section id="memo">
+      <SectionTitle>セクション4: 今月の補足情報（{yearMonth}）</SectionTitle>
       <div className="space-y-4">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">
-            今月の施策・変更点メモ
-          </label>
+          <label className={labelClass}>今月の施策・変更点メモ</label>
           <textarea
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className={inputClass}
             rows={3}
             placeholder="例：料金ページを全面改修した"
             value={memo}
@@ -69,33 +66,41 @@ export default function MonthlyMemoForm({
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-2">
-            今月提案しないサービス
-          </label>
+          <label className={labelClass}>今月提案しないサービス</label>
           <div className="flex flex-wrap gap-2">
-            {services.map((s) => (
-              <label key={s.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={excludeServices.includes(s.name)}
-                  onChange={() => toggleService(s.name)}
-                  className="rounded"
-                />
-                {s.display_name}
-              </label>
-            ))}
+            {services.map((s) => {
+              const checked = excludeServices.includes(s.name);
+              return (
+                <label
+                  key={s.id}
+                  className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors duration-150 ${
+                    checked
+                      ? 'border-accent/40 bg-accent-soft text-accent'
+                      : 'border-border bg-surface text-muted hover:bg-surface-muted'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleService(s.name)}
+                    className="accent-accent"
+                  />
+                  {s.display_name}
+                </label>
+              );
+            })}
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
-          >
-            {saving ? '保存中...' : '補足メモを保存'}
+          <button type="button" onClick={handleSave} disabled={saving} className={btnPrimary}>
+            {saving ? '保存中…' : '補足メモを保存'}
           </button>
-          {saved && <span className="text-green-600 text-sm">保存しました</span>}
+          {saved && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+              保存しました
+            </span>
+          )}
         </div>
       </div>
     </section>

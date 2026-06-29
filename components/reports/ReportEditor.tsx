@@ -3,6 +3,7 @@
 import { ClaudeReportResponse } from '@/lib/types';
 import SectionEditor from './SectionEditor';
 import ProposalList from './ProposalList';
+import { inputClass } from '@/components/ui/kit';
 
 interface ReportEditorProps {
   report: ClaudeReportResponse;
@@ -35,13 +36,13 @@ export default function ReportEditor({
         multiline
       />
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-500">良かった点</label>
+          <label className="text-xs font-medium text-muted">良かった点</label>
           <button
             type="button"
             onClick={() => onRegenerateSection('good_points')}
-            className="text-xs text-accent hover:underline"
+            className="text-xs font-medium text-accent underline-offset-4 transition-colors hover:text-accent-hover hover:underline"
           >
             このセクションだけ再生成
           </button>
@@ -49,7 +50,7 @@ export default function ReportEditor({
         {report.good_points.map((point, i) => (
           <textarea
             key={i}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className={inputClass}
             rows={2}
             value={point}
             onChange={(e) => {
@@ -61,13 +62,13 @@ export default function ReportEditor({
         ))}
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-500">気になる点</label>
+          <label className="text-xs font-medium text-muted">気になる点</label>
           <button
             type="button"
             onClick={() => onRegenerateSection('concern_points')}
-            className="text-xs text-accent hover:underline"
+            className="text-xs font-medium text-accent underline-offset-4 transition-colors hover:text-accent-hover hover:underline"
           >
             このセクションだけ再生成
           </button>
@@ -75,7 +76,7 @@ export default function ReportEditor({
         {report.concern_points.map((point, i) => (
           <textarea
             key={i}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className={inputClass}
             rows={2}
             value={point}
             onChange={(e) => {
