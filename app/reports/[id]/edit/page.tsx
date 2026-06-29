@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ReportEditor from '@/components/reports/ReportEditor';
+import AioPanel from '@/components/reports/AioPanel';
 import { PageShell, PageState, Card, btnPrimary, btnSecondary } from '@/components/ui/kit';
 import { Report, ClaudeReportResponse, GA4Data, SEOData } from '@/lib/types';
 
@@ -195,6 +196,8 @@ export default function ReportEditPage() {
               <p className="text-sm text-faint">データなし</p>
             )}
           </Card>
+
+          <AioPanel keywords={seo?.keywords || []} />
 
           <Card className="p-5">
             <h3 className="mb-3 text-sm font-semibold tracking-tight text-foreground">今月の提案サービス</h3>
