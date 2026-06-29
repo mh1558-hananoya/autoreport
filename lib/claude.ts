@@ -3,6 +3,9 @@ import { ClaudeReportResponse, GA4Data, SEOData, Service, CustomerPage } from '.
 
 const anthropic = new Anthropic();
 
+// レポート生成に使うClaudeモデル。日付サフィックスは付けない（エイリアスがそのまま正式ID）
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
+
 const SYSTEM_PROMPT = `あなたは株式会社花のやのWebマーケティング担当アシスタントです。
 保守契約中のクライアントへ送る月次レポートを生成してください。
 
@@ -138,7 +141,7 @@ export async function generateReport(input: GenerateReportInput): Promise<Claude
   const userPrompt = JSON.stringify(input, null, 2);
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: CLAUDE_MODEL,
     max_tokens: 4096,
     messages: [
       {
@@ -173,7 +176,7 @@ export async function regenerateSection(
   input: GenerateReportInput
 ): Promise<string> {
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: CLAUDE_MODEL,
     max_tokens: 2048,
     system: SYSTEM_PROMPT,
     messages: [
