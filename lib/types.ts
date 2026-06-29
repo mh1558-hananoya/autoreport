@@ -134,6 +134,10 @@ export interface SEOKeywordData {
   current_rank: number | null;
   previous_rank: number | null;
   url: string;
+  // AIO（Google AI Overview）調査。古いレポートには無いためすべて任意
+  aio_present?: boolean; // そのキーワードでAI Overview（AIによる要約回答）が表示されたか
+  aio_own_cited?: boolean; // AI Overviewの引用元に自社ドメインが含まれるか
+  aio_references?: string[]; // AI Overviewの引用元ドメイン一覧
 }
 
 export interface SEOCompetitorData {

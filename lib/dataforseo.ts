@@ -25,6 +25,10 @@ export interface SERPResult {
   target_url: string | null;
   own_rank: number | null;
   top_domains: { domain: string; rank: number }[];
+  // AIO（Google AI Overview）調査
+  aio_present: boolean; // AI Overviewが表示されたか
+  aio_own_cited: boolean; // AI Overviewの引用元に自社ドメインが含まれるか
+  aio_references: string[]; // AI Overviewの引用元ドメイン一覧
 }
 
 export function normalizeDomain(input: string): string {
@@ -35,59 +39,96 @@ export function normalizeDomain(input: string): string {
     .toLowerCase();
 }
 
+// 1キーワード分のSERPレスポンスを解析する。organic順位とAI Overviewを同時に読む。
+function parseSerpResponse(
+  keyword: { keyword: string; target_url: string | null },
+  data: { tasks?: { result?: { items?: Record<string, unknown>[] }[] }[] },
+  normalizedOwn: string
+): SERPResult {
+  let ownRank: number | null = null;
+  const topDomains: { domain: string; rank: number }[] = [];
+  let aioPresent = false;
+  let aioOwnCited = false;
+  const aioReferences: string[] = [];
+
+  const task = data.tasks?.[0];
+  for (const result of task?.result || []) {
+    for (const item of result.items || []) {
+      if (item.type === 'organic') {
+        const rank = item.rank_absolute as number;
+        const domain = normalizeDomain((item.domain as string) || '');
+        if (ownRank === null && domain === normalizedOwn) {
+          ownRank = rank;
+        }
+        if (rank <= 20) {
+          topDomains.push({ domain, rank });
+        }
+      } else if (item.type === 'ai_overview') {
+        // AI Overviewが表示された。引用元ドメインを抽出し、自社が含まれるか判定する。
+        aioPresent = true;
+        const references = (item.references as { domain?: string }[] | undefined) || [];
+        for (const ref of references) {
+          const domain = normalizeDomain(ref.domain || '');
+          if (!domain) continue;
+          if (!aioReferences.includes(domain)) {
+            aioReferences.push(domain);
+          }
+          if (domain === normalizedOwn) {
+            aioOwnCited = true;
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    keyword: keyword.keyword,
+    target_url: keyword.target_url,
+    own_rank: ownRank,
+    top_domains: topDomains,
+    aio_present: aioPresent,
+    aio_own_cited: aioOwnCited,
+    aio_references: aioReferences,
+  };
+}
+
 export async function fetchKeywordRanks(
   keywords: { keyword: string; target_url: string | null }[],
   ownDomain: string
 ): Promise<SERPResult[]> {
   const normalizedOwn = normalizeDomain(ownDomain);
-  const results: SERPResult[] = [];
+  if (keywords.length === 0) return [];
 
-  if (keywords.length === 0) return results;
-
-  const tasks = keywords.map((kw) => ({
-    keyword: kw.keyword,
-    location_code: 1009564,
-    language_code: 'ja',
-    device: 'desktop',
-    depth: 100,
-  }));
-
-  const data = await dataforseoFetch('/v3/serp/google/organic/live/advanced', tasks);
-
-  if (data.tasks) {
-    for (let i = 0; i < data.tasks.length; i++) {
-      const task = data.tasks[i];
-      const keyword = keywords[i];
-      let ownRank: number | null = null;
-      const topDomains: { domain: string; rank: number }[] = [];
-
-      if (task.result) {
-        for (const result of task.result) {
-          if (!result.items) continue;
-          for (const item of result.items) {
-            if (item.type !== 'organic') continue;
-            const rank = item.rank_absolute;
-            const domain = normalizeDomain(item.domain || '');
-            if (ownRank === null && domain === normalizedOwn) {
-              ownRank = rank;
-            }
-            if (rank <= 20) {
-              topDomains.push({ domain, rank });
-            }
-          }
-        }
+  // live/advanced は1リクエストにつき1キーワードのみ（複数送ると2件目以降がエラーになる）。
+  // そのためキーワードごとに並列でコールする。load_async_ai_overview でAI Overview本文・引用元も同時取得。
+  return Promise.all(
+    keywords.map(async (kw) => {
+      const task = {
+        keyword: kw.keyword,
+        location_code: 1009564,
+        language_code: 'ja',
+        device: 'desktop',
+        depth: 100,
+        load_async_ai_overview: true,
+      };
+      try {
+        const data = await dataforseoFetch('/v3/serp/google/organic/live/advanced', [task]);
+        return parseSerpResponse(kw, data, normalizedOwn);
+      } catch (error) {
+        // 1キーワードの失敗は致命的ではない。空の結果で続行する。
+        console.error(`SERP取得失敗（${kw.keyword}）:`, error);
+        return {
+          keyword: kw.keyword,
+          target_url: kw.target_url,
+          own_rank: null,
+          top_domains: [],
+          aio_present: false,
+          aio_own_cited: false,
+          aio_references: [],
+        };
       }
-
-      results.push({
-        keyword: keyword.keyword,
-        target_url: keyword.target_url,
-        own_rank: ownRank,
-        top_domains: topDomains,
-      });
-    }
-  }
-
-  return results;
+    })
+  );
 }
 
 export function extractKeywordData(serpResults: SERPResult[]): SEOKeywordData[] {
@@ -96,6 +137,9 @@ export function extractKeywordData(serpResults: SERPResult[]): SEOKeywordData[] 
     current_rank: r.own_rank,
     previous_rank: null,
     url: r.target_url || '',
+    aio_present: r.aio_present,
+    aio_own_cited: r.aio_own_cited,
+    aio_references: r.aio_references,
   }));
 }
 

@@ -74,6 +74,8 @@ const SYSTEM_PROMPT = `あなたは株式会社花のやのWebマーケティン
 - 両者は計測方法が異なるため数値が乖離する。レポート本文では混同しないこと
 - 順位に言及する場合はどちらのデータソースかを明確にすること
 - seo.competitors は登録済み競合ドメインの順位変動。rank_changeはプラスが上昇・マイナスが下降。keywords_foundはその競合が上位20位以内で検出されたキーワード名の配列。SERPの上位20位以内に出てこない場合はcurrent_rankがnull。
+- seo.keywords[].aio_present はそのキーワードでGoogle検索のAI Overview（AIによる要約回答）が表示されたか。aio_own_cited はそのAI Overviewの引用元に顧客サイトが含まれるか。aio_references は引用元ドメインの一覧。
+- AI Overviewが表示される（aio_present=true）のに自社が引用されていない（aio_own_cited=false）キーワードは、LLMO（AI引用最適化）の有力な提案機会。前向きに「AI検索で引用されるためのFAQ・比較記事などのコンテンツ整備」を提案に繋げてよい。逆に aio_own_cited=true は「すでにAIに引用されている」強みとして good_points で触れてよい。
 
 【アラートレベル（社内ダッシュボード用の内部指標。顧客向け本文のトーンは常に前向きに保つ）】
 レベル1（通常）：おおむね好調〜一部に伸びしろ。前向きに個別提案を出す。
