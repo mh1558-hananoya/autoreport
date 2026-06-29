@@ -71,6 +71,7 @@ ${gscKeywords.slice(0, 10).map((kw) => `${kw.keyword}　平均${Number(kw.positi
   const text = `${contactName}様
 
 お世話になっております。株式会社花のやです。
+本メールは、弊社と保守契約をいただいているお客様へ、毎月のサイト状況をお知らせするためにお送りしています。
 ${m}月度のサイトレポートをお届けします。
 
 ━━━━━━━━━━━━━━━━
@@ -111,6 +112,10 @@ ${detailText}
 一緒に貴社の成果につながる一手を考えてまいります。
 引き続きどうぞよろしくお願い申し上げます。
 
+━━━━━━━━━━━━━━━━
+
+※本レポートの配信停止をご希望の場合は、お手数ですが弊社担当者まで一言ご連絡ください。担当者にて対応いたします。
+
 株式会社花のや
 〒460-0008 名古屋市中区栄2-14-5 山本屋本店栄ビル7階
 TEL 052-211-9898
@@ -143,7 +148,7 @@ ${gscKeywords.slice(0, 10).map((kw) => `<tr><td style="padding: 3px 0;">${kw.key
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="font-family: 'Hiragino Sans', 'Meiryo', sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 <p>${contactName}様</p>
-<p>お世話になっております。株式会社花のやです。<br>${m}月度のサイトレポートをお届けします。</p>
+<p>お世話になっております。株式会社花のやです。<br>本メールは、弊社と保守契約をいただいているお客様へ、毎月のサイト状況をお知らせするためにお送りしています。<br>${m}月度のサイトレポートをお届けします。</p>
 
 <div style="background: #f8f8f8; border-left: 4px solid #d2151a; padding: 16px; margin: 24px 0;">
 <h3 style="margin: 0 0 12px; color: #d2151a;">📊 今月のサマリー</h3>
@@ -184,6 +189,9 @@ ${
 ${detailHtml}
 
 <hr style="border: none; border-top: 1px solid #ddd; margin: 24px 0;">
+<p style="font-size: 12px; color: #999; background: #f5f5f5; padding: 12px 14px; border-radius: 4px;">
+※本レポートの配信停止をご希望の場合は、お手数ですが弊社担当者まで一言ご連絡ください。担当者にて対応いたします。
+</p>
 <p style="font-size: 13px; color: #666;">
 ご不明点があればいつでもご連絡ください。<br>
 引き続きよろしくお願いいたします。<br><br>
