@@ -1,25 +1,32 @@
 import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
 
+// 社内向けの共有パスワード認証。
+// 環境変数 APP_PASSWORD と一致した場合のみログインを許可する。
 const handler = NextAuth({
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    CredentialsProvider({
+      name: '社内ログイン',
+      credentials: {
+        password: { label: 'パスワード', type: 'password' },
+      },
+      async authorize(credentials) {
+        const expected = process.env.APP_PASSWORD;
+        // APP_PASSWORD 未設定時は誰もログインさせない（フェイルセーフ）
+        if (!expected) {
+          console.error('APP_PASSWORD が未設定のためログインを拒否しました');
+          return null;
+        }
+        if (credentials?.password === expected) {
+          return { id: 'staff', name: '花のや' };
+        }
+        return null;
+      },
     }),
   ],
+  session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',
-  },
-  callbacks: {
-    async signIn({ user }) {
-      // 管理者のメールアドレスのみ許可
-      const allowedEmails = (process.env.ALLOWED_EMAILS || '').split(',').map(e => e.trim());
-      if (allowedEmails.length > 0 && allowedEmails[0] !== '') {
-        return allowedEmails.includes(user.email || '');
-      }
-      return true;
-    },
   },
 });
 
