@@ -10,6 +10,7 @@ export default function Navigation() {
   const links = [
     { href: '/dashboard', label: 'ダッシュボード' },
     { href: '/customers/new', label: '顧客登録' },
+    { href: '/customers/import', label: 'CSV一括登録' },
   ];
 
   return (
